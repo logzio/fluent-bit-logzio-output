@@ -129,7 +129,7 @@ func FLBPluginExit() int {
 }
 
 func initConfigParams(ctx unsafe.Pointer) error {
-	b, err := strconv.ParseBool(plugin.Environment(ctx, "Debug"))
+	b, err := strconv.ParseBool(plugin.Environment(ctx, "logzio_debug"))
 	if err != nil {
 		b = false
 	}
@@ -137,14 +137,14 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	logger = NewLogger(outputName, b)
 	logger.Debug("initializing output plugin..")
 
-	ltype = plugin.Environment(ctx, "Type")
+	ltype = plugin.Environment(ctx, "logzio_type")
 
-	url := plugin.Environment(ctx, "URL")
+	url := plugin.Environment(ctx, "logzio_url")
 	if url == "" {
 		return fmt.Errorf("URL is empty")
 	}
 
-	token := plugin.Environment(ctx, "Token")
+	token := plugin.Environment(ctx, "logzio_token")
 	if token == "" {
 		return fmt.Errorf("token is empty")
 	}

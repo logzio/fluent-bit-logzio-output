@@ -50,13 +50,13 @@ type TestPlugin struct {
 
 func (p *TestPlugin) Environment(ctx unsafe.Pointer, key string) string {
 	switch key {
-	case "Type":
+	case "logzio_type":
 		return p.ltype
-	case "Token":
+	case "logzio_token":
 		return p.token
-	case "URL":
+	case "logzio_url":
 		return p.url
-	case "Debug":
+	case "logzio_debug":
 		return p.debug
 	}
 	return "not found"
