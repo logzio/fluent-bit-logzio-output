@@ -16,8 +16,8 @@ RUN dep ensure -v \
 FROM fluent/fluent-bit:1.1
 
 COPY --from=gobuilder /go/src/logzio/build/out_logzio.so /fluent-bit/bin/
-COPY --from=gobuilder /go/src/logzio/fluent-bit.conf /fluent-bit/etc/
-COPY --from=gobuilder /go/src/logzio/plugins.conf /fluent-bit/etc/
+COPY --from=gobuilder /go/src/logzio/test/fluent-bit.conf /fluent-bit/etc/
+COPY --from=gobuilder /go/src/logzio/test/plugins.conf /fluent-bit/etc/
 
 EXPOSE 2020
 
