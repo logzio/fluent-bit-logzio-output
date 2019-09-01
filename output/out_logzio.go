@@ -124,13 +124,13 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 // it will trigger the exit callback.
 //export FLBPluginExit
 func FLBPluginExit() int {
+	plugin.Flush()
 	return output.FLB_OK
 }
 
 func initConfigParams(ctx unsafe.Pointer) error {
 	b, err := strconv.ParseBool(plugin.Environment(ctx, "Debug"))
 	if err != nil {
-		logger.Debug("using default debug = false")
 		b = false
 	}
 
@@ -151,6 +151,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 
 	client, err = NewClient(token,
 		SetURL(url),
+		SetDebug(b),
 	)
 
 	if err != nil {
