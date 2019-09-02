@@ -15,6 +15,8 @@ import (
 const (
 	outputDescription = "This is fluent-bit output plugin that sends data to Logz.io"
 	outputName        = "logzio"
+
+	defaultLogType = "logzio-fluenbit"
 )
 
 // Initialize output parameters
@@ -138,6 +140,9 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	logger.Debug("initializing output plugin..")
 
 	ltype = plugin.Environment(ctx, "logzio_type")
+	if ltype == "" {
+		ltype = defaultLogType
+	}
 
 	url := plugin.Environment(ctx, "logzio_url")
 	if url == "" {
