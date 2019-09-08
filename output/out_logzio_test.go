@@ -17,25 +17,25 @@ const (
 	testDebug = "true"
 )
 
-func TestSerializeRecord(t *testing.T) {
+func TestSerializeRecord(test *testing.T) {
 	record := make(map[interface{}]interface{})
 	record["key"] = "value"
 	record["five"] = 5
-	ts := time.Now()
+	testServer := time.Now()
 
-	s, err := serializeRecord(ts, "atag", record)
-	require.NoError(t, err)
-	require.NotNil(t, s, "nil json")
+	serialize, err := serializeRecord(testServer, "atag", record)
+	require.NoError(test, err)
+	require.NotNil(test, serialize, "nil json")
 
 	result := make(map[string]interface{})
-	err = json.Unmarshal(s, &result)
+	err = json.Unmarshal(serialize, &result)
 	if err != nil {
-		require.NotNil(t, err)
+		require.NotNil(test, err)
 	}
 
-	require.Equal(t, result["fluentbit_tag"], "atag")
-	require.Equal(t, result["key"], "value")
-	require.Equal(t, result["five"], float64(5))
+	require.Equal(test, result["fluentbit_tag"], "atag")
+	require.Equal(test, result["key"], "value")
+	require.Equal(test, result["five"], float64(5))
 }
 
 type TestPlugin struct {
@@ -91,7 +91,7 @@ func (p *TestPlugin) GetRecord(dec *output.FLBDecoder) (int, interface{}, map[in
 	return 0, time.Now(), record
 }
 
-func TestPluginInitialization(t *testing.T) {
+func TestPluginInitialization(test *testing.T) {
 	plugin = &TestPlugin{
 		ltype: testType,
 		token: testToken,
@@ -99,30 +99,30 @@ func TestPluginInitialization(t *testing.T) {
 		debug: testDebug,
 	}
 	res := FLBPluginInit(nil)
-	require.Equal(t, output.FLB_OK, res)
+	require.Equal(test, output.FLB_OK, res)
 }
 
-func TestPluginMissingToken(t *testing.T) {
+func TestPluginMissingToken(test *testing.T) {
 	plugin = &TestPlugin{
 		ltype: testType,
 		url:   testURL,
 		debug: testDebug,
 	}
 	res := FLBPluginInit(nil)
-	require.Equal(t, output.FLB_ERROR, res)
+	require.Equal(test, output.FLB_ERROR, res)
 }
 
-func TestPluginMissingURL(t *testing.T) {
+func TestPluginMissingURL(test *testing.T) {
 	plugin = &TestPlugin{
 		ltype: testType,
 		token: testToken,
 		debug: testDebug,
 	}
 	res := FLBPluginInit(nil)
-	require.Equal(t, output.FLB_ERROR, res)
+	require.Equal(test, output.FLB_ERROR, res)
 }
 
-func TestPluginFlusher(t *testing.T) {
+func TestPluginFlusher(test *testing.T) {
 	tp := &TestPlugin{
 		ltype:    testType,
 		token:    testToken,
@@ -132,19 +132,19 @@ func TestPluginFlusher(t *testing.T) {
 	}
 	plugin = tp
 	res := FLBPluginFlush(nil, 0, nil)
-	require.Equal(t, output.FLB_OK, res)
+	require.Equal(test, output.FLB_OK, res)
 
 	var j map[string]interface{}
 	blog := []byte(tp.logs[0])
 	err := json.Unmarshal(blog, &j)
 	if err != nil {
-		require.NotNil(t, err)
+		require.NotNil(test, err)
 	}
 
 	foo := j["foo"].(map[string]interface{})
-	require.Equal(t, foo["bar"], "1")
-	require.Equal(t, foo["baz"], float64(2))
-	require.Equal(t, j["type"], "override")
-	require.Equal(t, j["host"], "host")
-	require.Contains(t, j, "@timestamp")
+	require.Equal(test, foo["bar"], "1")
+	require.Equal(test, foo["baz"], float64(2))
+	require.Equal(test, j["type"], "override")
+	require.Equal(test, j["host"], "host")
+	require.Contains(test, j, "@timestamp")
 }

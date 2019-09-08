@@ -131,12 +131,12 @@ func FLBPluginExit() int {
 }
 
 func initConfigParams(ctx unsafe.Pointer) error {
-	b, err := strconv.ParseBool(plugin.Environment(ctx, "logzio_debug"))
+	debug, err := strconv.ParseBool(plugin.Environment(ctx, "logzio_debug"))
 	if err != nil {
-		b = false
+		debug = false
 	}
 
-	logger = NewLogger(outputName, b)
+	logger = NewLogger(outputName, debug)
 	logger.Debug("initializing output plugin..")
 
 	ltype = plugin.Environment(ctx, "logzio_type")
@@ -156,7 +156,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 
 	client, err = NewClient(token,
 		SetURL(url),
-		SetDebug(b),
+		SetDebug(debug),
 	)
 
 	if err != nil {
@@ -195,19 +195,19 @@ func serializeRecord(ts interface{}, tag string, record map[interface{}]interfac
 }
 
 func parseJSON(record map[interface{}]interface{}) map[string]interface{} {
-	m := make(map[string]interface{})
+	jsonRecord := make(map[string]interface{})
 	for k, v := range record {
 		switch t := v.(type) {
 		case []byte:
 			// prevent encoding to base64
-			m[k.(string)] = string(t)
+			jsonRecord[k.(string)] = string(t)
 		case map[interface{}]interface{}:
-			m[k.(string)] = parseJSON(t)
+			jsonRecord[k.(string)] = parseJSON(t)
 		default:
-			m[k.(string)] = v
+			jsonRecord[k.(string)] = v
 		}
 	}
-	return m
+	return jsonRecord
 }
 
 func formatTimestamp(ts interface{}) time.Time {
