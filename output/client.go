@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	defaultURL         = "https://listener.logz.io:8071"
+	defaultURL                = "https://listener.logz.io:8071"
 	maxRequestBodySizeInBytes = 9 * 1024 * 1024 // 9MB
-	MB = 1 * 1024 * 1024
+	megaByte                  = 1 * 1024 * 1024 // 1MB
 )
 
 // LogzioClient http client that sends bulks to Logz.io http listener
@@ -23,9 +23,9 @@ type LogzioClient struct {
 	url   string
 	token string
 
-	bulk      []byte
-	client    *http.Client
-	logger    *Logger
+	bulk                 []byte
+	client               *http.Client
+	logger               *Logger
 	sizeThresholdInBytes int
 }
 
@@ -35,9 +35,9 @@ type ClientOptionFunc func(*LogzioClient) error
 // NewClient is a constructor for Logz.io http client
 func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error) {
 	logzioClient := &LogzioClient{
-		url:       defaultURL,
-		token:     token,
-		logger:    NewLogger(outputName, false),
+		url:                  defaultURL,
+		token:                token,
+		logger:               NewLogger(outputName, false),
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
 	}
 
@@ -85,7 +85,7 @@ func SetDebug(debug bool) ClientOptionFunc {
 // The param in in MB and can be between 0(mostly for testing) and 9
 func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
-		logzioClient.sizeThresholdInBytes = threshold * MB
+		logzioClient.sizeThresholdInBytes = threshold * megaByte
 		if threshold < 0 || threshold > 9 {
 			logzioClient.logger.Debug("falling back to the default BodySizeThreshold")
 			logzioClient.sizeThresholdInBytes = maxRequestBodySizeInBytes
@@ -122,8 +122,8 @@ func (logzioClient *LogzioClient) sendBulk() int {
 		return status
 	}
 
-	respCode, ok := logzioClient.doRequest(req)
-	if !ok {
+	respCode := logzioClient.doRequest(req)
+	if respCode != output.FLB_OK {
 		return logzioClient.shouldRetry(respCode)
 	}
 
@@ -155,21 +155,21 @@ func (logzioClient *LogzioClient) createRequest() (*http.Request, int) {
 	return req, output.FLB_OK
 }
 
-func (logzioClient *LogzioClient) doRequest(req *http.Request) (int, bool) {
+func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 	resp, err := logzioClient.client.Do(req)
 	if err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed to do client request: %+v", err))
-		return output.FLB_ERROR, false
+		return output.FLB_ERROR
 	}
 	defer resp.Body.Close()
 
 	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode > 299 {
 		logzioClient.logger.Log(fmt.Sprintf("recieved an error from logz.io listener: %+v", err))
-		return resp.StatusCode, false
+		return resp.StatusCode
 	}
 	logzioClient.logger.Debug("successfully sent bulk to logz.io\n")
-	return output.FLB_OK, true
+	return output.FLB_OK
 }
 
 func (logzioClient *LogzioClient) shouldRetry(code int) int {

@@ -102,25 +102,29 @@ func readLogs(r *http.Request) ([]string, error) {
 
 func doStatusCodeResponseTest(test *testing.T, statusCode int, expected int) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(statusCode)
+		if statusCode == http.StatusOK {
+			w.WriteHeader(statusCode)
+			return
+		}
+		http.Error(w, "error!!!", statusCode)
 	}))
 	defer testServer.Close()
 
-	testUrl, err := url.Parse(fmt.Sprintf("http://%s", testServer.Listener.Addr().String()))
+	testURL, err := url.Parse(fmt.Sprintf("http://%s", testServer.Listener.Addr().String()))
 	require.NoError(test, err)
 
-	logzioClient := LogzioTestClient(testUrl.String())
+	logzioClient := LogzioTestClient(testURL.String())
 	logzioClient.Send([]byte("test"))
 	res := logzioClient.Flush()
 	require.Equal(test, res, expected)
 }
 
-func LogzioTestClient(testUrl string) *LogzioClient {
+func LogzioTestClient(testURL string) *LogzioClient {
 	return &LogzioClient{
-		token:     logzioTestToken,
-		url:       testUrl,
-		logger:    NewLogger("testing", true),
-		client:    http.DefaultClient,
+		token:                logzioTestToken,
+		url:                  testURL,
+		logger:               NewLogger("testing", true),
+		client:               http.DefaultClient,
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
 	}
 }
