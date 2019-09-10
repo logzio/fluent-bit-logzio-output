@@ -119,7 +119,7 @@ func TestPluginMissingURL(test *testing.T) {
 		debug: testDebug,
 	}
 	res := FLBPluginInit(nil)
-	require.Equal(test, output.FLB_ERROR, res)
+	require.Equal(test, output.FLB_OK, res)
 }
 
 func TestPluginFlusher(test *testing.T) {

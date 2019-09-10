@@ -1,7 +1,7 @@
 # fluent-bit-logzio-output
 This is a Logz.io fluent-bit output plugin. 
 
-###Prerequisites
+### Prerequisites
 * Fluent-Bit installed. For more information on how to install Fluent-Bit: [installation docs](https://docs.fluentbit.io/manual/installation).
 * Logz.io output plugin: 
 
@@ -9,22 +9,28 @@ This is a Logz.io fluent-bit output plugin.
 wget -o /fluent-bit/plugins/out_logzio.so https://github.com/logzio/fluent-bit-logzio-output/build/out_logzio.so
 ```
 
-###Configuration
+### Configuration
 
 Add to your Fluent-Bit configuration file Logz.io as an output:
 ```toml
 [OUTPUT]
     Name  logzio
     Match *
-    logzio_token <YOUR_LOGZIO_SHIPPING_TOKEN>
-    logzio_url   <YOUR_LOGZIO_LISTENER_URL>
-    logzio_type  testBit
+    logzio_token <ACCOUNT-TOKEN>
+    logzio_url   <LISTENER-URL>
 ```
 
-_**Parameters table(logzio_token, logzio_url, logzio_type, logzio_debug)**_
+#### Parameters
+
+| Parameter | Description |
+|---|---|
+| **logzio_token** | **Required**. <br> Replace `<ACCOUNT-TOKEN>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to. |
+| **logzio_url** | **Default**. `https://listener.logz.io:8071` <br> Replace `<LISTENER-URL>` with your region's listener URL. For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
+| **logzio_type** |  **Default**: `logzio-fluenbit` <br> The log type filed that is attached to each log. |
+| **logzio_debug** | **Default**: `false` <br> When set to `true` the plugin prints debug messages to stdout. |
 
 
-###Usage
+### Usage
 To run Fluent-Bit with Logz.io output plugin:
 ```text
 fluent-bit -e /fluent-bit/plugins/out_logzio.so -c /fluent-bit/etc/fluent-bit.conf
@@ -37,14 +43,14 @@ docker run -it --rm -v /path/to/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf 
 
 _**Make sure**_ that your new configuration file has `Plugins_File plugins.conf` under `[Service]` section.
 
-##Development
+## Development
 
-###Requirements
+### Requirements
 
 * Go version >= 1.11.x
 
 
-###Download
+### Download
 
 Download the project:
 ```text

@@ -141,12 +141,14 @@ func initConfigParams(ctx unsafe.Pointer) error {
 
 	ltype = plugin.Environment(ctx, "logzio_type")
 	if ltype == "" {
+		logger.Debug(fmt.Sprintf("using default log type: %s", defaultLogType))
 		ltype = defaultLogType
 	}
 
 	url := plugin.Environment(ctx, "logzio_url")
 	if url == "" {
-		return fmt.Errorf("URL is empty")
+		logger.Debug(fmt.Sprintf("using default url: %s", defaultURL))
+		url = defaultURL
 	}
 
 	token := plugin.Environment(ctx, "logzio_token")
