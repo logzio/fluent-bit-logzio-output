@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	outputDescription = "This is fluent-bit output plugin that sends data to Logz.io"
+	outputDescription = "This is a fluent-bit output plugin that sends data to Logz.io"
 	outputName        = "logzio"
 
-	defaultLogType = "logzio-fluenbit"
+	defaultLogType = "logzio-fluent-bit"
 )
 
 // Initialize output parameters
