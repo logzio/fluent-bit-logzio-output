@@ -89,15 +89,15 @@ we recommend running a new instance for each output stream you need.
 For a list of options, see the configuration parameters below the code block. 👇
 
 ```python
+[SERVICE]
+    # Include your remaining SERVICE configuration here.
+    Plugins_File plugins.conf
+
 [OUTPUT]
     Name  logzio
     Match *
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
-
-[SERVICE]
-    # Include your remaining SERVICE configuration here.
-    Plugins_File plugins.conf
 ```
 
 **Parameters**
