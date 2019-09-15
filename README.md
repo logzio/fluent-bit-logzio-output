@@ -77,9 +77,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 #### 1.  Make the configuration file
 
 To run in a container,
-create a configuration file.
-For this example,
-we'll name the file `fluent-bit.conf`.
+create a configuration file named `fluent-bit.conf`.
 
 **Note**:
 Logz.io-Out Plugin for Fluent Bit
