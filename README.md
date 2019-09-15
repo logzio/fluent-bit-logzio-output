@@ -144,8 +144,8 @@ dep ensure -vendor-only
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
 
 ```shell
-docker build -t test -f test/Dockerfile .
-docker run test
+docker build -t logzio-bit-test -f test/Dockerfile .
+docker run logzio-bit-test
 ```
 
 Always confirm your logs are arriving at your Logz.io account.
