@@ -9,7 +9,6 @@ RUN mkdir /go/src/logzio \
 COPY / /go/src/logzio
 WORKDIR /go/src/logzio
 
-RUN ls -l
 RUN dep ensure -v \
     && make all
 
