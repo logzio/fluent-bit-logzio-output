@@ -15,7 +15,7 @@ You have two options when running Logz.io-Out Plugin for Fluent Bit:
 
 If you haven't installed Fluent Bit yet,
 you can build it from source
-according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual/installation/build_install).
+according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual/installation/sources/build-and-install).
 
 #### 2.  Install and configure the Logz.io plugin
 
