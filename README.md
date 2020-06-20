@@ -19,9 +19,16 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
+For Linux:
 ```shell
 wget -o /fluent-bit/plugins/out_logzio.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
+```
+
+For Mac:
+```shell
+wget -o /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-mac.so
 ```
 
 In your Fluent Bit configuration file (`fluent-bit.conf` by default),
