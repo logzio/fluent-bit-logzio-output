@@ -164,8 +164,12 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 	defer resp.Body.Close()
 
 	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil || resp.StatusCode < 200 || resp.StatusCode > 299 {
-		logzioClient.logger.Log(fmt.Sprintf("recieved an error from logz.io listener: %+v", err))
+	if err != nil {
+		logzioClient.logger.Log(fmt.Sprintf("recieved an error attempting to read from logz.io listener: %+v", err))
+		return resp.StatusCode
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		logzioClient.logger.Log(fmt.Sprintf("recieved a non-200 HTTP status code from logz.io listener: %d", resp.StatusCode))
 		return resp.StatusCode
 	}
 	logzioClient.logger.Debug("successfully sent bulk to logz.io\n")
