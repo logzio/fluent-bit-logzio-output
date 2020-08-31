@@ -169,7 +169,7 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 		return resp.StatusCode
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		logzioClient.logger.Log(fmt.Sprintf("recieved a non-2xx HTTP status code from logz.io listener: %d (%v)", resp.StatusCode, body))
+		logzioClient.logger.Log(fmt.Sprintf("recieved a non-2xx HTTP status code from logz.io listener: %d (%v)", resp.StatusCode, string(body)))
 		return resp.StatusCode
 	}
 	logzioClient.logger.Debug("successfully sent bulk to logz.io\n")
