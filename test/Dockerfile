@@ -12,7 +12,7 @@ WORKDIR /go/src/logzio
 RUN dep ensure -v \
     && make all
 
-FROM fluent/fluent-bit:1.1
+FROM fluent/fluent-bit:1.5.4
 
 COPY --from=gobuilder /go/src/logzio/build/out_logzio.so /fluent-bit/bin/
 COPY --from=gobuilder /go/src/logzio/test/fluent-bit.conf /fluent-bit/etc/
