@@ -160,7 +160,7 @@ Always confirm your logs are arriving at your Logz.io account.
 
 ## Change log
 - **0.0.2**:
-    - Upgrade to fluent-bit 1.5.4 in docker image.
+    - Upgrade to fluent-bit 1.5.4 in docker image (Thanks @alysivji).
     - Fixed error output (Thanks @alexjurkiewicz).
 - **0.0.1**:
     - Initial release.
