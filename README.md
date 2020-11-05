@@ -144,10 +144,6 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 To contribute, clone this repo
 and install dependencies
 
-```shell
-dep ensure -vendor-only
-```
-
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
 
 ```shell
