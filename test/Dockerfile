@@ -1,18 +1,15 @@
-FROM golang:1.14 as gobuilder
+FROM golang:1.15.3 as gobuilder
 
 ENV GOOS=linux\
     GOARCH=amd64
 
-RUN mkdir /go/src/logzio \
-    && go get -u github.com/golang/dep/cmd/dep
-
+RUN mkdir /go/src/logzio
 COPY / /go/src/logzio
 WORKDIR /go/src/logzio
 
-RUN dep ensure -v \
-    && make all
+RUN make
 
-FROM fluent/fluent-bit:1.5.4
+FROM fluent/fluent-bit:1.8.3
 
 COPY --from=gobuilder /go/src/logzio/build/out_logzio.so /fluent-bit/bin/
 COPY --from=gobuilder /go/src/logzio/test/fluent-bit.conf /fluent-bit/etc/

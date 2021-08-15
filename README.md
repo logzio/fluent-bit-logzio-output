@@ -144,10 +144,6 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 To contribute, clone this repo
 and install dependencies
 
-```shell
-dep ensure -vendor-only
-```
-
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
 
 ```shell
@@ -159,6 +155,11 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.1.0**:
+    - Upgrade to use Go modules (Thanks @camal-cakar-gcx)
+    - Update to fluent-bit `1.8.3` in docker image.
+    - Update to latest fluent-bit-go.
+    - Upgrade to `gopkg.in/yaml.v3`.
 - **0.0.2**:
     - Upgrade to fluent-bit 1.5.4 in docker image (Thanks @alysivji).
     - Fixed error output (Thanks @alexjurkiewicz).
