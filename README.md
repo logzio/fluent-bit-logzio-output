@@ -159,7 +159,7 @@ Always confirm your logs are arriving at your Logz.io account.
     - Upgrade to use Go modules (Thanks @camal-cakar-gcx)
     - Update to fluent-bit `1.8.3` in docker image.
     - Update to latest fluent-bit-go.
-    - Upgrade to `gopkg.in/yaml.v2 v2.4.0`.
+    - Upgrade to `gopkg.in/yaml.v3`.
 - **0.0.2**:
     - Upgrade to fluent-bit 1.5.4 in docker image (Thanks @alysivji).
     - Fixed error output (Thanks @alexjurkiewicz).
