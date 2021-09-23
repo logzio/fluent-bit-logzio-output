@@ -33,8 +33,7 @@ wget -O /fluent-bit/plugins/out_logzio.so \
 
 For Windows:
 ```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-windows.so
+wget https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-windows.so
 ```
 
 In your Fluent Bit configuration file (`fluent-bit.conf` by default),
