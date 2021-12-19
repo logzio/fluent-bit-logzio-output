@@ -5,6 +5,8 @@ You have two options when running Logz.io-Out Plugin for Fluent Bit:
 * [Run as a standalone app](#standalone-config)
 * [Run in a Docker container](#docker-config)
 
+**Note:** this project support ARM architecture as of v0.1.1.
+
 <div id="standalone-config">
 
 ## Run as a standalone app
@@ -19,10 +21,16 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
-For Linux:
+For Linux amd64::
 ```shell
 wget -O /fluent-bit/plugins/out_logzio.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
+```
+
+For Linux arm64::
+```shell
+wget -O /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux-arm64.so
 ```
 
 For MacOS:
@@ -160,6 +168,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.1.1**:
+  - Support ARM architecture (docker image + plugin).
 - **0.1.0**:
     - Upgrade to use Go modules (Thanks @camal-cakar-gcx)
     - Update to fluent-bit `1.8.3` in docker image.
