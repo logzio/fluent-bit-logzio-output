@@ -169,7 +169,7 @@ Always confirm your logs are arriving at your Logz.io account.
 
 ## Change log
 - **0.1.2**:
-  - Upgrade to fluent-bit `1.8.12` in docker image.
+  - Upgrade to fluent-bit `1.8.14` in docker image.
 - **0.1.1**:
   - Support ARM architecture (docker image + plugin).
 - **0.1.0**:
