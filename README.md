@@ -168,6 +168,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.1.3**:
+  - Upgrade to fluent-bit `1.9.7` in docker image.
 - **0.1.2**:
   - Upgrade to fluent-bit `1.8.14` in docker image.
 - **0.1.1**:
