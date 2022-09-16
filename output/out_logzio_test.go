@@ -23,7 +23,7 @@ func TestSerializeRecord(test *testing.T) {
 	record["five"] = 5
 	testServer := time.Now()
 
-	serialize, err := serializeRecord(testServer, "atag", record)
+	serialize, err := serializeRecord(testServer, "atag", record, "logzio", defaultId)
 	require.NoError(test, err)
 	require.NotNil(test, serialize, "nil json")
 
@@ -39,13 +39,13 @@ func TestSerializeRecord(test *testing.T) {
 }
 
 type TestPlugin struct {
-	ltype string
-	token string
-	url   string
-	debug string
-
-	logs     []string
-	rcounter int
+	ltype     string
+	token     string
+	url       string
+	debug     string
+	logs      []string
+	rcounter  int
+	output_id string
 }
 
 func (p *TestPlugin) Environment(ctx unsafe.Pointer, key string) string {
@@ -64,9 +64,9 @@ func (p *TestPlugin) Environment(ctx unsafe.Pointer, key string) string {
 
 func (p *TestPlugin) Unregister(ctx unsafe.Pointer)                                 {}
 func (p *TestPlugin) NewDecoder(data unsafe.Pointer, length int) *output.FLBDecoder { return nil }
-func (p *TestPlugin) Flush() int                                                    { return output.FLB_OK }
+func (p *TestPlugin) Flush(*LogzioClient) int                                       { return output.FLB_OK }
 
-func (p *TestPlugin) Send(log []byte) int {
+func (p *TestPlugin) Send(log []byte, client *LogzioClient) int {
 	p.logs = append(p.logs, string(log))
 	return output.FLB_OK
 }
@@ -77,8 +77,9 @@ func (p *TestPlugin) GetRecord(dec *output.FLBDecoder) (int, interface{}, map[in
 	}
 
 	record := map[interface{}]interface{}{
-		"type": "override",
-		"host": "host",
+		"type":      "override",
+		"host":      "host",
+		"output_id": defaultId,
 	}
 
 	foo := map[interface{}]interface{}{
@@ -131,7 +132,7 @@ func TestPluginFlusher(test *testing.T) {
 		rcounter: 1,
 	}
 	plugin = tp
-	res := FLBPluginFlush(nil, 0, nil)
+	res := FLBPluginFlushCtx(nil, nil, 0, nil)
 	require.Equal(test, output.FLB_OK, res)
 
 	var j map[string]interface{}
@@ -146,5 +147,6 @@ func TestPluginFlusher(test *testing.T) {
 	require.Equal(test, foo["baz"], float64(2))
 	require.Equal(test, j["type"], "override")
 	require.Equal(test, j["host"], "host")
+	require.Equal(test, j["output_id"], "1")
 	require.Contains(test, j, "@timestamp")
 }

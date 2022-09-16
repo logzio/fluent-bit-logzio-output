@@ -22,10 +22,19 @@ const (
 // Initialize output parameters
 var (
 	plugin Plugin = &bitPlugin{}
+	logger        = NewLogger(outputName, true)
+)
 
+type LogzioOutput struct {
+	plugin Plugin
 	logger *Logger
 	client *LogzioClient
 	ltype  string
+	id     string
+}
+
+var (
+	outputs map[string]LogzioOutput
 )
 
 // Plugin interface
@@ -34,8 +43,8 @@ type Plugin interface {
 	Unregister(ctx unsafe.Pointer)
 	GetRecord(dec *output.FLBDecoder) (ret int, ts interface{}, rec map[interface{}]interface{})
 	NewDecoder(data unsafe.Pointer, length int) *output.FLBDecoder
-	Send(values []byte) int
-	Flush() int
+	Send(values []byte, client *LogzioClient) int
+	Flush(*LogzioClient) int
 }
 
 type bitPlugin struct{}
@@ -56,11 +65,11 @@ func (p *bitPlugin) NewDecoder(data unsafe.Pointer, length int) *output.FLBDecod
 	return output.NewDecoder(data, length)
 }
 
-func (p *bitPlugin) Send(log []byte) int {
+func (p *bitPlugin) Send(log []byte, client *LogzioClient) int {
 	return client.Send(log)
 }
 
-func (p *bitPlugin) Flush() int {
+func (p *bitPlugin) Flush(client *LogzioClient) int {
 	return client.Flush()
 }
 
@@ -81,11 +90,18 @@ func FLBPluginRegister(ctx unsafe.Pointer) int {
 // If the plugin reports an error, the engine will not load the instance.
 //export FLBPluginInit
 func FLBPluginInit(ctx unsafe.Pointer) int {
+	id := output.FLBPluginConfigKey(ctx, "id")
+	logger.Debug(fmt.Sprintf("Initializing id %v", id))
 	if err := initConfigParams(ctx); err != nil {
-		logger.Log(fmt.Sprintf("failed to initialize output configuration: %v", err))
+		logger.Debug(fmt.Sprintf("failed to initialize output configuration: %v", err))
 		plugin.Unregister(ctx)
 		return output.FLB_ERROR
 	}
+	return output.FLB_OK
+}
+
+//export FLBPluginFlush
+func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 	return output.FLB_OK
 }
 
@@ -95,13 +111,20 @@ func FLBPluginInit(ctx unsafe.Pointer) int {
 // a raw buffer of msgpack data,
 // the proper bytes length and the associated tag.
 // When done, there are three returning values available: FLB_OK, FLB_ERROR, FLB_RETRY.
-//export FLBPluginFlush
-func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
+//export FLBPluginFlushCtx
+func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int {
 	var ret int
 	var ts interface{}
 	var record map[interface{}]interface{}
-
+	id := defaultId
 	// Create Fluent-Bit decoder
+
+	id = output.FLBPluginGetContext(ctx).(string)
+	logger.Debug(fmt.Sprintf("Id IS %v", id))
+	if ctx != nil {
+		id = output.FLBPluginGetContext(ctx).(string)
+		logger.Debug(fmt.Sprintf("Using id: %v", id))
+	}
 	dec := plugin.NewDecoder(data, int(length))
 
 	// Iterate Records
@@ -112,51 +135,57 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 			break
 		}
 
-		log, err := serializeRecord(ts, C.GoString(tag), record)
+		log, err := serializeRecord(ts, C.GoString(tag), record, outputs[id].ltype, id)
 		if err != nil {
 			continue
 		}
-		plugin.Send(log)
+		plugin.Send(log, outputs[id].client)
 	}
 
-	return plugin.Flush()
+	return plugin.Flush(outputs[id].client)
 }
 
 //FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
 // it will trigger the exit callback.
 //export FLBPluginExit
 func FLBPluginExit() int {
-	plugin.Flush()
+	plugin.Flush(nil)
 	return output.FLB_OK
 }
 
 func initConfigParams(ctx unsafe.Pointer) error {
-	debug, err := strconv.ParseBool(plugin.Environment(ctx, "logzio_debug"))
+	debug, err := strconv.ParseBool(output.FLBPluginConfigKey(ctx, "logzio_debug"))
 	if err != nil {
 		debug = false
 	}
 
-	logger = NewLogger(outputName, debug)
-	logger.Debug("initializing output plugin..")
+	logger = NewLogger(outputName, true)
+	logger.Log("initializing output plugin..")
 
-	ltype = plugin.Environment(ctx, "logzio_type")
+	ltype := output.FLBPluginConfigKey(ctx, "logzio_type")
 	if ltype == "" {
 		logger.Debug(fmt.Sprintf("using default log type: %s", defaultLogType))
 		ltype = defaultLogType
 	}
 
-	url := plugin.Environment(ctx, "logzio_url")
+	url := output.FLBPluginConfigKey(ctx, "logzio_url")
 	if url == "" {
 		logger.Debug(fmt.Sprintf("using default url: %s", defaultURL))
 		url = defaultURL
 	}
 
-	token := plugin.Environment(ctx, "logzio_token")
+	token := output.FLBPluginConfigKey(ctx, "logzio_token")
 	if token == "" {
 		return fmt.Errorf("token is empty")
 	}
 
-	client, err = NewClient(token,
+	outputId := output.FLBPluginConfigKey(ctx, "id")
+	logger.Debug(fmt.Sprintf("Getting id %v", outputId))
+	if outputId == "" {
+		logger.Debug(fmt.Sprintf("using default id: %s", defaultId))
+	}
+
+	client, err := NewClient(token,
 		SetURL(url),
 		SetDebug(debug),
 	)
@@ -165,14 +194,31 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		return fmt.Errorf("failed to create new client: %+v", err)
 	}
 
+	if outputs == nil {
+		outputs = make(map[string]LogzioOutput)
+	}
+
+	outputs[outputId] = LogzioOutput{
+		logger: logger,
+		client: client,
+		ltype:  ltype,
+		id:     outputId,
+	}
+
 	return nil
 }
 
-func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}) ([]byte, error) {
+func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, ltype string, outputId string) ([]byte, error) {
 	body := parseJSON(record)
 	if _, ok := body["type"]; !ok {
 		if ltype != "" {
 			body["type"] = ltype
+		}
+	}
+
+	if _, ok := body["output_id"]; !ok {
+		if ltype != "" {
+			body["output_id"] = outputId
 		}
 	}
 
