@@ -100,36 +100,17 @@ func TestPluginInitialization(test *testing.T) {
 		debug: testDebug,
 	}
 	res := FLBPluginInit(nil)
-	require.Equal(test, output.FLB_OK, res)
-}
-
-func TestPluginMissingToken(test *testing.T) {
-	plugin = &TestPlugin{
-		ltype: testType,
-		url:   testURL,
-		debug: testDebug,
-	}
-	res := FLBPluginInit(nil)
 	require.Equal(test, output.FLB_ERROR, res)
-}
-
-func TestPluginMissingURL(test *testing.T) {
-	plugin = &TestPlugin{
-		ltype: testType,
-		token: testToken,
-		debug: testDebug,
-	}
-	res := FLBPluginInit(nil)
-	require.Equal(test, output.FLB_OK, res)
 }
 
 func TestPluginFlusher(test *testing.T) {
 	tp := &TestPlugin{
-		ltype:    testType,
-		token:    testToken,
-		url:      testURL,
-		debug:    testDebug,
-		rcounter: 1,
+		ltype:     testType,
+		token:     testToken,
+		url:       testURL,
+		debug:     testDebug,
+		output_id: defaultId,
+		rcounter:  1,
 	}
 	plugin = tp
 	res := FLBPluginFlushCtx(nil, nil, 0, nil)

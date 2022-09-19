@@ -15,11 +15,9 @@ import (
 const (
 	outputDescription = "This is a fluent-bit output plugin that sends data to Logz.io"
 	outputName        = "logzio"
-
-	defaultLogType = "logzio-fluent-bit"
+	defaultLogType    = "logzio-fluent-bit"
 )
 
-// Initialize output parameters
 var (
 	plugin Plugin = &bitPlugin{}
 	logger        = NewLogger(outputName, true)
@@ -90,11 +88,15 @@ func FLBPluginRegister(ctx unsafe.Pointer) int {
 // If the plugin reports an error, the engine will not load the instance.
 //export FLBPluginInit
 func FLBPluginInit(ctx unsafe.Pointer) int {
-	id := output.FLBPluginConfigKey(ctx, "id")
-	logger.Debug(fmt.Sprintf("Initializing id %v", id))
-	if err := initConfigParams(ctx); err != nil {
-		logger.Debug(fmt.Sprintf("failed to initialize output configuration: %v", err))
-		plugin.Unregister(ctx)
+	if ctx != nil {
+		if err := initConfigParams(ctx); err != nil {
+			logger.Debug(fmt.Sprintf("failed to initialize output configuration: %v", err))
+			plugin.Unregister(ctx)
+			return output.FLB_ERROR
+		}
+
+		output.FLBPluginSetContext(ctx, output.FLBPluginConfigKey(ctx, "id"))
+	} else {
 		return output.FLB_ERROR
 	}
 	return output.FLB_OK
@@ -116,15 +118,16 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 	var ret int
 	var ts interface{}
 	var record map[interface{}]interface{}
-	id := defaultId
-	// Create Fluent-Bit decoder
-
-	id = output.FLBPluginGetContext(ctx).(string)
-	logger.Debug(fmt.Sprintf("Id IS %v", id))
+	var id string
 	if ctx != nil {
 		id = output.FLBPluginGetContext(ctx).(string)
-		logger.Debug(fmt.Sprintf("Using id: %v", id))
 	}
+
+	if id == "" {
+		id = defaultId
+	}
+
+	logger.Debug(fmt.Sprintf("Flushing for id: %s", id))
 	dec := plugin.NewDecoder(data, int(length))
 
 	// Iterate Records
@@ -159,9 +162,22 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		debug = false
 	}
 
-	logger = NewLogger(outputName, true)
-	logger.Log("initializing output plugin..")
+	outputId := output.FLBPluginConfigKey(ctx, "id")
 
+	if outputs == nil {
+		outputs = make(map[string]LogzioOutput)
+	}
+
+	if outputId == "" {
+		logger.Debug(fmt.Sprintf("using default id: %s", defaultId))
+		outputId = defaultId
+	}
+
+	if _, ok := outputs[outputId]; ok {
+		logger.Log(fmt.Sprintf("outpout_id %s already exists, overriding", outputId))
+	}
+
+	logger = NewLogger(outputName, debug)
 	ltype := output.FLBPluginConfigKey(ctx, "logzio_type")
 	if ltype == "" {
 		logger.Debug(fmt.Sprintf("using default log type: %s", defaultLogType))
@@ -179,12 +195,6 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		return fmt.Errorf("token is empty")
 	}
 
-	outputId := output.FLBPluginConfigKey(ctx, "id")
-	logger.Debug(fmt.Sprintf("Getting id %v", outputId))
-	if outputId == "" {
-		logger.Debug(fmt.Sprintf("using default id: %s", defaultId))
-	}
-
 	client, err := NewClient(token,
 		SetURL(url),
 		SetDebug(debug),
@@ -192,10 +202,6 @@ func initConfigParams(ctx unsafe.Pointer) error {
 
 	if err != nil {
 		return fmt.Errorf("failed to create new client: %+v", err)
-	}
-
-	if outputs == nil {
-		outputs = make(map[string]LogzioOutput)
 	}
 
 	outputs[outputId] = LogzioOutput{
