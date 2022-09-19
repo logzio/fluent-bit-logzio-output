@@ -4,12 +4,11 @@ import (
 	"C"
 	"encoding/json"
 	"fmt"
+	"github.com/fluent/fluent-bit-go/output"
 	"os"
 	"strconv"
 	"time"
 	"unsafe"
-
-	"github.com/fluent/fluent-bit-go/output"
 )
 
 const (

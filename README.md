@@ -65,7 +65,7 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 | logzio_url   | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
 | logzio_type  | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
 | logzio_debug | **Default**: `false` <br> Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                               |
-| id           | **Default**: `1` <br> Output name. Mandatory when using multiple outputs.                                                                                                                                                                                                                                                |
+| id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
 
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
@@ -117,13 +117,13 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 
 **Parameters**
 
-| Parameter | Description |
-|---|---|
-| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to. |
+| Parameter | Description                                                                                                                                                                                                                                                                                                              |
+|---|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
 | logzio_url | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces. |
-| logzio_debug | **Default**: `false` <br>  Set to `true` to print debug messages to stdout. |
-| id           | **Default**: `1` <br> Output name. Mandatory when using multiple outputs.                                                                                                                                                                                                                                                |
+| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
+| logzio_debug | **Default**: `false` <br>  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                              |
+| id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
 
 #### 2.  Run the Docker image
 

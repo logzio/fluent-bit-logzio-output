@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultURL                = "https://listener.logz.io:8071"
-	defaultId                 = "1"
+	defaultId                 = "logzio_output_1"
 	maxRequestBodySizeInBytes = 9 * 1024 * 1024 // 9MB
 	megaByte                  = 1 * 1024 * 1024 // 1MB
 )

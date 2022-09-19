@@ -128,6 +128,6 @@ func TestPluginFlusher(test *testing.T) {
 	require.Equal(test, foo["baz"], float64(2))
 	require.Equal(test, j["type"], "override")
 	require.Equal(test, j["host"], "host")
-	require.Equal(test, j["output_id"], "1")
+	require.Equal(test, j["output_id"], "logzio_output_1")
 	require.Contains(test, j, "@timestamp")
 }
