@@ -21,13 +21,13 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 For Linux:
 ```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
 ```
 
 For MacOS:
 ```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS.so
 ```
 
@@ -70,7 +70,7 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
 ```shell
-fluent-bit -e /fluent-bit/plugins/out_logzio.so \
+fluent-bit -e /fluent-bit/plugins/out_logzio-linux.so \
 -c /fluent-bit/etc/fluent-bit.conf
 ```
 
@@ -156,7 +156,7 @@ and install dependencies
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
 
 ```shell
-docker build -t logzio-bit-test -f test/Dockerfile .
+docker build -t logzio-bit-test -f test/Dockerfile.arm-amd .
 docker run logzio-bit-test
 ```
 
