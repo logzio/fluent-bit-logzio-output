@@ -1,3 +1,6 @@
+//go:build linux || darwin || windows
+// +build linux darwin windows
+
 package main
 
 import (
@@ -176,7 +179,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		logger.Log(fmt.Sprintf("outpout_id %s already exists, overriding", outputId))
 	}
 
-	logger = NewLogger(outputName, debug)
+	logger = NewLogger(outputName+"_"+outputId, debug)
 	ltype := output.FLBPluginConfigKey(ctx, "logzio_type")
 	if ltype == "" {
 		logger.Debug(fmt.Sprintf("using default log type: %s", defaultLogType))
