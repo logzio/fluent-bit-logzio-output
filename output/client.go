@@ -1,3 +1,6 @@
+//go:build linux || darwin || windows
+// +build linux darwin windows
+
 package main
 
 import (
@@ -14,15 +17,15 @@ import (
 
 const (
 	defaultURL                = "https://listener.logz.io:8071"
+	defaultId                 = "logzio_output_1"
 	maxRequestBodySizeInBytes = 9 * 1024 * 1024 // 9MB
 	megaByte                  = 1 * 1024 * 1024 // 1MB
 )
 
 // LogzioClient http client that sends bulks to Logz.io http listener
 type LogzioClient struct {
-	url   string
-	token string
-
+	url                  string
+	token                string
 	bulk                 []byte
 	client               *http.Client
 	logger               *Logger

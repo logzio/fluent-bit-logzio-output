@@ -82,6 +82,7 @@ extern GoInt FLBPluginRegister(void* ctx);
 // The function must return FLB_OK when it initialized properly or FLB_ERROR if something went wrong.
 // If the plugin reports an error, the engine will not load the instance.
 extern GoInt FLBPluginInit(void* ctx);
+extern GoInt FLBPluginFlush(void* data, int length, char* tag);
 
 // FLBPluginFlush Upon flush time, when Fluent Bit wants to flush it's buffers,
 // the runtime flush callback will be triggered.
@@ -89,7 +90,7 @@ extern GoInt FLBPluginInit(void* ctx);
 // a raw buffer of msgpack data,
 // the proper bytes length and the associated tag.
 // When done, there are three returning values available: FLB_OK, FLB_ERROR, FLB_RETRY.
-extern GoInt FLBPluginFlush(void* data, int length, char* tag);
+extern GoInt FLBPluginFlushCtx(void* ctx, void* data, int length, char* tag);
 
 //FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
 // it will trigger the exit callback.

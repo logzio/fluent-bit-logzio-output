@@ -5,8 +5,6 @@ You have two options when running Logz.io-Out Plugin for Fluent Bit:
 * [Run as a standalone app](#standalone-config)
 * [Run in a Docker container](#docker-config)
 
-**Note:** this project support ARM architecture as of v0.1.1.
-
 <div id="standalone-config">
 
 ## Run as a standalone app
@@ -21,21 +19,15 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
-For Linux amd64::
+For Linux:
 ```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
-```
-
-For Linux arm64::
-```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux-arm64.so
 ```
 
 For MacOS:
 ```shell
-wget -O /fluent-bit/plugins/out_logzio.so \
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS.so
 ```
 
@@ -62,21 +54,23 @@ For a list of options, see the configuration parameters below the code block. ðŸ
     Match *
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
+    id <<any string>>
 ```
 
 **Parameters**
 
-| Parameter | Description |
-|---|---|
-| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to. |
-| logzio_url | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces. |
-| logzio_debug | **Default**: `false` <br> Set to `true` to print debug messages to stdout. |
+| Parameter    | Description                                                                                                                                                                                                                                                                                                              |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
+| logzio_url   | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
+| logzio_type  | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
+| logzio_debug | **Default**: `false` <br> Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                               |
+| id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
 
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
 ```shell
-fluent-bit -e /fluent-bit/plugins/out_logzio.so \
+fluent-bit -e /fluent-bit/plugins/out_logzio-linux.so \
 -c /fluent-bit/etc/fluent-bit.conf
 ```
 
@@ -118,16 +112,18 @@ For a list of options, see the configuration parameters below the code block. ðŸ
     Match *
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
+    id <<any string>>
 ```
 
 **Parameters**
 
-| Parameter | Description |
-|---|---|
-| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to. |
+| Parameter | Description                                                                                                                                                                                                                                                                                                              |
+|---|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
 | logzio_url | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces. |
-| logzio_debug | **Default**: `false` <br>  Set to `true` to print debug messages to stdout. |
+| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
+| logzio_debug | **Default**: `false` <br>  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                              |
+| id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
 
 #### 2.  Run the Docker image
 
@@ -158,9 +154,9 @@ To contribute, clone this repo
 and install dependencies
 
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
-
+Replace <<arch-type>> with amd or arm
 ```shell
-docker build -t logzio-bit-test -f test/Dockerfile .
+docker build -t logzio-bit-test -f test/Dockerfile.<<arch-type>> .
 docker run logzio-bit-test
 ```
 
@@ -168,12 +164,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
-- **0.1.3**:
-  - Upgrade to fluent-bit `1.9.7` in docker image.
-- **0.1.2**:
-  - Upgrade to fluent-bit `1.8.14` in docker image.
-- **0.1.1**:
-  - Support ARM architecture (docker image + plugin).
+- **0.2.0**:
+    - Added `id` parameter to support multiple outputs.
 - **0.1.0**:
     - Upgrade to use Go modules (Thanks @camal-cakar-gcx)
     - Update to fluent-bit `1.8.3` in docker image.
