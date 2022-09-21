@@ -154,9 +154,9 @@ To contribute, clone this repo
 and install dependencies
 
 Remember to run and add unit tests. For end-to-end tests, you can add your Logz.io parameters to `fluent-bit.conf` and run:
-
+Replace <<arch-type>> with amd or arm
 ```shell
-docker build -t logzio-bit-test -f test/Dockerfile.arm-amd .
+docker build -t logzio-bit-test -f test/Dockerfile.<<arch-type>> .
 docker run logzio-bit-test
 ```
 
