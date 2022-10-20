@@ -52,6 +52,7 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 [OUTPUT]
     Name  logzio
     Match *
+    Workers 1
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
@@ -66,6 +67,8 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 | logzio_type  | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
 | logzio_debug | **Default**: `false` <br> Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                               |
 | id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
+| workers | Enables dedicated thread(s) for this output. | Default value is 1. To support more traffic, adjust this value accordingly. |
+
 
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
