@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/fluent/fluent-bit-go/output"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 	"unsafe"
@@ -26,11 +27,14 @@ var (
 )
 
 type LogzioOutput struct {
-	plugin Plugin
-	logger *Logger
-	client *LogzioClient
-	ltype  string
-	id     string
+	plugin            Plugin
+	logger            *Logger
+	client            *LogzioClient
+	ltype             string
+	id                string
+	dedotEnabled      bool
+	dedotNested       bool
+	dedotNewSeperator string
 }
 
 var (
@@ -77,6 +81,7 @@ func (p *bitPlugin) Flush(client *LogzioClient) int {
 // it looks up and loads the registration callback that aims
 // to populate the internal structure with plugin name and description.
 // This function is invoked at start time before any configuration is done inside the engine.
+//
 //export FLBPluginRegister
 func FLBPluginRegister(ctx unsafe.Pointer) int {
 	return output.FLBPluginRegister(ctx, outputName, outputDescription)
@@ -88,6 +93,7 @@ func FLBPluginRegister(ctx unsafe.Pointer) int {
 // It can also set the context for this instance in case params need to be retrieved during flush.
 // The function must return FLB_OK when it initialized properly or FLB_ERROR if something went wrong.
 // If the plugin reports an error, the engine will not load the instance.
+//
 //export FLBPluginInit
 func FLBPluginInit(ctx unsafe.Pointer) int {
 	if ctx != nil {
@@ -115,6 +121,7 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 // a raw buffer of msgpack data,
 // the proper bytes length and the associated tag.
 // When done, there are three returning values available: FLB_OK, FLB_ERROR, FLB_RETRY.
+//
 //export FLBPluginFlushCtx
 func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int {
 	var ret int
@@ -140,7 +147,7 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 			break
 		}
 
-		log, err := serializeRecord(ts, C.GoString(tag), record, outputs[id].ltype, id)
+		log, err := serializeRecord(ts, C.GoString(tag), record, outputs[id].ltype, id, outputs[id].dedotEnabled, outputs[id].dedotNested, outputs[id].dedotNewSeperator)
 		if err != nil {
 			continue
 		}
@@ -150,8 +157,9 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 	return plugin.Flush(outputs[id].client)
 }
 
-//FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
+// FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
 // it will trigger the exit callback.
+//
 //export FLBPluginExit
 func FLBPluginExit() int {
 	plugin.Flush(nil)
@@ -197,6 +205,25 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		return fmt.Errorf("token is empty")
 	}
 
+	dedotEnabled, err := strconv.ParseBool(output.FLBPluginConfigKey(ctx, "dedot_enabled"))
+	dedotNested := false
+	dedotNewSeperator := ""
+	if err == nil {
+		dedotNested, err = strconv.ParseBool(output.FLBPluginConfigKey(ctx, "dedot_nested"))
+		if err != nil {
+			logger.Debug(fmt.Sprintf("Failed parsing dedot nested value, set to false"))
+		}
+
+		dedotNewSeperator = output.FLBPluginConfigKey(ctx, "dedot_new_seperator")
+		if dedotNewSeperator == "" || dedotNewSeperator == "." {
+			logger.Debug(fmt.Sprintf("Failed parsing dedot new seperator value, set to _"))
+			dedotNewSeperator = "_"
+		}
+	} else {
+		logger.Debug(fmt.Sprintf("Failed parsing dedotEnabled value, set to false"))
+	}
+	logger.Debug(fmt.Sprintf("dedot seperator: %s", dedotNewSeperator))
+
 	client, err := NewClient(token,
 		SetURL(url),
 		SetDebug(debug),
@@ -207,17 +234,21 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	}
 
 	outputs[outputId] = LogzioOutput{
-		logger: logger,
-		client: client,
-		ltype:  ltype,
-		id:     outputId,
+		logger:            logger,
+		client:            client,
+		ltype:             ltype,
+		id:                outputId,
+		dedotEnabled:      dedotEnabled,
+		dedotNested:       dedotNested,
+		dedotNewSeperator: dedotNewSeperator,
 	}
 
 	return nil
 }
 
-func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, ltype string, outputId string) ([]byte, error) {
-	body := parseJSON(record)
+func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, ltype string, outputId string, dedotEnabled bool, dedotNested bool, newSeperator string) ([]byte, error) {
+	body := parseJSON(record, dedotEnabled, dedotNested, newSeperator)
+	var err error
 	if _, ok := body["type"]; !ok {
 		if ltype != "" {
 			body["type"] = ltype
@@ -250,22 +281,31 @@ func serializeRecord(ts interface{}, tag string, record map[interface{}]interfac
 	return serialized, nil
 }
 
-func parseJSON(record map[interface{}]interface{}) map[string]interface{} {
+func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNested bool, dedotNewSeperator string) map[string]interface{} {
 	jsonRecord := make(map[string]interface{})
+
 	for k, v := range record {
+		stringKey := k.(string)
+		if dedotEnabled {
+			regex := regexp.MustCompile("\\.")
+			stringKey = regex.ReplaceAllString(stringKey, dedotNewSeperator)
+		}
+
 		switch t := v.(type) {
 		case []byte:
 			// prevent encoding to base64
-			jsonRecord[k.(string)] = string(t)
+			jsonRecord[stringKey] = string(t)
 		case map[interface{}]interface{}:
-			jsonRecord[k.(string)] = parseJSON(t)
+			if !dedotNested {
+				dedotEnabled = false
+			}
+			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
 		default:
-			jsonRecord[k.(string)] = v
+			jsonRecord[stringKey] = v
 		}
 	}
 	return jsonRecord
 }
-
 func formatTimestamp(ts interface{}) time.Time {
 	var timestamp time.Time
 	switch t := ts.(type) {
