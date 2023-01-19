@@ -117,14 +117,16 @@ For a list of options, see the configuration parameters below the code block. ðŸ
 
 **Parameters**
 
-| Parameter | Description                                                                                                                                                                                                                                                                                                              |
-|---|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
-| logzio_url | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
-| logzio_debug | **Default**: `false` <br>  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                              |
-| id           | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
-
+| Parameter           | Description                                                                                                                                                                                                                                                                                                              |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| logzio_token        | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
+| logzio_url          | **Default**: `https://listener.logz.io:8071` <br> Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
+| logzio_type         | **Default**: `logzio-fluent-bit` <br> The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
+| logzio_debug        | **Default**: `false` <br>  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                              |
+| id                  | **Default**: `logzio_output_1` <br> Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
+| dedot_enabled       | **Default**: `false` <br> Enabled dedot processing.                                                                                                                                                                                                                                                                      |
+| dedot_nested        | **Default**: `false` <br> Enables nesting dedot processing.                                                                                                                                                                                                                                                              |
+| dedot_new_seperator | **Default**: `"_"` <br> Seperator character to use when applying dedot processing.                                                                                                                                                                                                |
 #### 2.  Run the Docker image
 
 Run the Docker image
@@ -164,6 +166,10 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.3.0**:
+    - Added an optional dedot processing.
+    - Upgraded to golang `1.19.1.` in docker image.
+    - Update to fluent-bit `2.0.8` in docker image.
 - **0.2.0**:
     - Added `id` parameter to support multiple outputs.
 - **0.1.0**:
