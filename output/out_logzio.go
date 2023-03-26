@@ -5,7 +5,7 @@ package main
 
 import (
 	"C"
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 	"fmt"
 	"github.com/fluent/fluent-bit-go/output"
 	"os"
@@ -184,7 +184,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	}
 
 	if _, ok := outputs[outputId]; ok {
-		logger.Log(fmt.Sprintf("outpout_id %s already exists, overriding", outputId))
+		logger.Log(fmt.Sprintf("output_id %s already exists, overriding", outputId))
 	}
 
 	logger = NewLogger(outputName+"_"+outputId, debug)
@@ -273,7 +273,7 @@ func serializeRecord(ts interface{}, tag string, record map[interface{}]interfac
 	body["@timestamp"] = formatTimestamp(ts)
 	body["fluentbit_tag"] = tag
 
-	serialized, err := json.Marshal(body)
+	serialized, err := jsoniter.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert %+v to JSON: %v", record, err)
 	}
@@ -300,6 +300,22 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 				dedotEnabled = false
 			}
 			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
+		case []interface{}:
+			var array []interface{}
+			for _, e := range v.([]interface{}) {
+				switch t := e.(type) {
+				case []byte:
+				    array = append(array, string(t))
+				case map[interface{}]interface{}:
+					if !dedotNested {
+						dedotEnabled = false
+					}
+					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator))
+				default:
+					array = append(array, e)
+				}
+			}
+			jsonRecord[stringKey] = array
 		default:
 			jsonRecord[stringKey] = v
 		}

@@ -5,7 +5,7 @@
 
 #line 1 "cgo-builtin-export-prolog"
 
-#include <stddef.h> /* for ptrdiff_t below */
+#include <stddef.h>
 
 #ifndef GO_CGO_EXPORT_PROLOGUE_H
 #define GO_CGO_EXPORT_PROLOGUE_H
@@ -40,11 +40,17 @@ typedef long long GoInt64;
 typedef unsigned long long GoUint64;
 typedef GoInt64 GoInt;
 typedef GoUint64 GoUint;
-typedef __SIZE_TYPE__ GoUintptr;
+typedef size_t GoUintptr;
 typedef float GoFloat32;
 typedef double GoFloat64;
+#ifdef _MSC_VER
+#include <complex.h>
+typedef _Fcomplex GoComplex64;
+typedef _Dcomplex GoComplex128;
+#else
 typedef float _Complex GoComplex64;
 typedef double _Complex GoComplex128;
+#endif
 
 /*
   static assertion to make sure the file is being used on architecture
@@ -73,6 +79,7 @@ extern "C" {
 // it looks up and loads the registration callback that aims
 // to populate the internal structure with plugin name and description.
 // This function is invoked at start time before any configuration is done inside the engine.
+//
 extern GoInt FLBPluginRegister(void* ctx);
 
 // FLBPluginInit Before the engine starts,
@@ -81,6 +88,7 @@ extern GoInt FLBPluginRegister(void* ctx);
 // It can also set the context for this instance in case params need to be retrieved during flush.
 // The function must return FLB_OK when it initialized properly or FLB_ERROR if something went wrong.
 // If the plugin reports an error, the engine will not load the instance.
+//
 extern GoInt FLBPluginInit(void* ctx);
 extern GoInt FLBPluginFlush(void* data, int length, char* tag);
 
@@ -90,10 +98,12 @@ extern GoInt FLBPluginFlush(void* data, int length, char* tag);
 // a raw buffer of msgpack data,
 // the proper bytes length and the associated tag.
 // When done, there are three returning values available: FLB_OK, FLB_ERROR, FLB_RETRY.
+//
 extern GoInt FLBPluginFlushCtx(void* ctx, void* data, int length, char* tag);
 
-//FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
+// FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
 // it will trigger the exit callback.
+//
 extern GoInt FLBPluginExit();
 
 #ifdef __cplusplus

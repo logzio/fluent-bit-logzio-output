@@ -1,4 +1,5 @@
 all:
+	go get github.com/json-iterator/go
 	go build -buildmode=c-shared -o build/out_logzio.so ./output
 
 clean:
