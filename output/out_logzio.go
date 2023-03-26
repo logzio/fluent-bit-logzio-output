@@ -184,7 +184,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	}
 
 	if _, ok := outputs[outputId]; ok {
-		logger.Log(fmt.Sprintf("outpout_id %s already exists, overriding", outputId))
+		logger.Log(fmt.Sprintf("output_id %s already exists, overriding", outputId))
 	}
 
 	logger = NewLogger(outputName+"_"+outputId, debug)
@@ -295,17 +295,27 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 		case []byte:
 			// prevent encoding to base64
 			jsonRecord[stringKey] = string(t)
-		case []interface{}:
-		    arrayStr, err := jsoniter.Marshal(v)
-		    if err != nil {
-                continue
-            }
-		    jsonRecord[stringKey] = string(arrayStr)
 		case map[interface{}]interface{}:
 			if !dedotNested {
 				dedotEnabled = false
 			}
 			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
+		case []interface{}:
+			var array []interface{}
+			for _, e := range v.([]interface{}) {
+				switch t := e.(type) {
+				case []byte:
+				    array = append(array, string(t))
+				case map[interface{}]interface{}:
+					if !dedotNested {
+						dedotEnabled = false
+					}
+					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator))
+				default:
+					array = append(array, e)
+				}
+			}
+			jsonRecord[stringKey] = array
 		default:
 			jsonRecord[stringKey] = v
 		}
