@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/fluent/fluent-bit-go/output"
@@ -30,6 +31,7 @@ type LogzioClient struct {
 	client               *http.Client
 	logger               *Logger
 	sizeThresholdInBytes int
+	proxyURL             string
 }
 
 // ClientOptionFunc options for Logz.io
@@ -37,17 +39,19 @@ type ClientOptionFunc func(*LogzioClient) error
 
 // NewClient is a constructor for Logz.io http client
 func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error) {
+	proxyURL := LogzioClient{}.proxyURL
 	logzioClient := &LogzioClient{
 		url:                  defaultURL,
 		token:                token,
 		logger:               NewLogger(outputName, false),
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
+		proxyURL:             proxyURL,
 	}
 
 	tlsConfig := &tls.Config{}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment,
+		Proxy:           http.ProxyFromEnvironment, // HTTP_PROXY environment variable set in out_logzio.go
 	}
 	// in case server side is sleeping - wait 10s instead of waiting for him to wake up
 	httpClient := &http.Client{
@@ -94,6 +98,19 @@ func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 			logzioClient.sizeThresholdInBytes = maxRequestBodySizeInBytes
 		}
 		logzioClient.logger.Debug(fmt.Sprintf("setting BodySizeThreshold to %d\n", logzioClient.sizeThresholdInBytes))
+		return nil
+	}
+}
+
+// SetProxyURL set the http proxy url
+func SetProxyURL(proxyURL string) ClientOptionFunc {
+	return func(logzioClient *LogzioClient) error {
+		logzioClient.proxyURL = proxyURL
+		err := os.Setenv("HTTP_PROXY", proxyURL)
+		if err != nil {
+			return err
+		}
+		logzioClient.logger.Debug(fmt.Sprintf("setting http proxy url to %s\n", proxyURL))
 		return nil
 	}
 }
