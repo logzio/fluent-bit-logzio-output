@@ -87,7 +87,7 @@ func SetDebug(debug bool) ClientOptionFunc {
 }
 
 // SetBodySizeThreshold set the maximum body size of the client http request
-// The param in in MB and can be between 0(mostly for testing) and 9
+// The param is in MB and can be between 0(mostly for testing) and 9
 func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
 		logzioClient.sizeThresholdInBytes = threshold * megaByte
@@ -107,6 +107,11 @@ func SetProxyURL(proxyURL string) ClientOptionFunc {
 		if err != nil {
 			return err
 		}
+		err = os.Setenv("HTTPS_PROXY", proxyURL)
+		if err != nil {
+			return err
+		}
+
 		logzioClient.logger.Debug(fmt.Sprintf("setting http proxy url to %s\n", proxyURL))
 		return nil
 	}

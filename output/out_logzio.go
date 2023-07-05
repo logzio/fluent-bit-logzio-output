@@ -223,6 +223,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		logger.Debug(fmt.Sprintf("Failed parsing dedotEnabled value, set to false"))
 	}
 	logger.Debug(fmt.Sprintf("dedot seperator: %s", dedotNewSeperator))
+
 	proxyURL := output.FLBPluginConfigKey(ctx, "proxy_url") // http://proxyIp:proxyPort
 
 	client, err := NewClient(token,
