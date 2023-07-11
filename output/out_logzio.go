@@ -194,10 +194,10 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		ltype = defaultLogType
 	}
 
-	url := output.FLBPluginConfigKey(ctx, "logzio_url")
-	if url == "" {
-		logger.Debug(fmt.Sprintf("using default url: %s", defaultURL))
-		url = defaultURL
+	listenerURL := output.FLBPluginConfigKey(ctx, "logzio_url")
+	if listenerURL == "" {
+		logger.Debug(fmt.Sprintf("using default listener url: %s", defaultURL))
+		listenerURL = defaultURL
 	}
 
 	token := output.FLBPluginConfigKey(ctx, "logzio_token")
@@ -224,12 +224,14 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	}
 	logger.Debug(fmt.Sprintf("dedot seperator: %s", dedotNewSeperator))
 
-	proxyURL := output.FLBPluginConfigKey(ctx, "proxy_url") // http://proxyIp:proxyPort
+	proxyHost := output.FLBPluginConfigKey(ctx, "proxy_host") // proxyHost:proxyPort
+	proxyUser := output.FLBPluginConfigKey(ctx, "proxy_user") // admin
+	proxyPass := output.FLBPluginConfigKey(ctx, "proxy_pass") // password1234
 
 	client, err := NewClient(token,
-		SetURL(url),
+		SetURL(listenerURL),
 		SetDebug(debug),
-		SetProxyURL(proxyURL),
+		SetProxy(proxyHost, proxyUser, proxyPass),
 	)
 
 	if err != nil {

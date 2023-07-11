@@ -8,12 +8,11 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"fmt"
+	"github.com/fluent/fluent-bit-go/output"
 	"io/ioutil"
 	"net/http"
-	"os"
+	"net/url"
 	"time"
-
-	"github.com/fluent/fluent-bit-go/output"
 )
 
 const (
@@ -25,7 +24,7 @@ const (
 
 // LogzioClient http client that sends bulks to Logz.io http listener
 type LogzioClient struct {
-	url                  string
+	listenerURL          string
 	token                string
 	bulk                 []byte
 	client               *http.Client
@@ -38,18 +37,16 @@ type ClientOptionFunc func(*LogzioClient) error
 
 // NewClient is a constructor for Logz.io http client
 func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error) {
-
 	logzioClient := &LogzioClient{
-		url:                  defaultURL,
+		listenerURL:          defaultURL,
 		token:                token,
 		logger:               NewLogger(outputName, false),
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
 	}
-
 	tlsConfig := &tls.Config{}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment, // HTTP_PROXY environment variable set in out_logzio.go
+		Proxy:           http.ProxyFromEnvironment, // proxy_url set in out_logzio.go
 	}
 	// in case server side is sleeping - wait 10s instead of waiting for him to wake up
 	httpClient := &http.Client{
@@ -69,10 +66,10 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 }
 
 // SetURL set the url which maybe different from the defaultUrl
-func SetURL(url string) ClientOptionFunc {
+func SetURL(listenerURL string) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
-		logzioClient.url = url
-		logzioClient.logger.Debug(fmt.Sprintf("setting url to %s\n", url))
+		logzioClient.listenerURL = listenerURL
+		logzioClient.logger.Debug(fmt.Sprintf("setting listener url to %s\n", listenerURL))
 		return nil
 	}
 }
@@ -100,19 +97,29 @@ func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 	}
 }
 
-// SetProxyURL set the http proxy url
-func SetProxyURL(proxyURL string) ClientOptionFunc {
+// SetProxy set the http proxy url
+func SetProxy(proxyHost string, proxyUser string, proxyPass string) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
-		err := os.Setenv("HTTP_PROXY", proxyURL)
-		if err != nil {
-			return err
-		}
-		err = os.Setenv("HTTPS_PROXY", proxyURL)
-		if err != nil {
-			return err
+		if proxyHost != "" {
+			proxyURLStr := fmt.Sprintf("http://%s", proxyHost)
+
+			if proxyUser != "" && proxyPass != "" {
+				proxyURLStr = fmt.Sprintf("http://%s:%s@%s", proxyUser, proxyPass, proxyHost)
+			}
+			logzioClient.logger.Debug(fmt.Sprintf("setting http proxy url to %s\n", proxyURLStr))
+			if proxyURLStr != "http://" && proxyURLStr != "http://:@" {
+				proxyURL, err := url.Parse(proxyURLStr)
+				if err != nil {
+					fmt.Printf("Failed to set proxy url: %s.\nError:\n%s.", proxyURLStr, err)
+				} else {
+
+					transport := http.Transport{}
+					transport.Proxy = http.ProxyURL(proxyURL) // set proxy
+					logzioClient.client.Transport = &transport
+				}
+			}
 		}
 
-		logzioClient.logger.Debug(fmt.Sprintf("setting http proxy url to %s\n", proxyURL))
 		return nil
 	}
 }
@@ -166,7 +173,7 @@ func (logzioClient *LogzioClient) createRequest() (*http.Request, int) {
 		return nil, output.FLB_RETRY
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/?token=%s", logzioClient.url, logzioClient.token), &buf)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/?token=%s", logzioClient.listenerURL, logzioClient.token), &buf)
 	if err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed to create a request: %+v", err))
 		return nil, output.FLB_RETRY
