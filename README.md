@@ -137,7 +137,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 | dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                      |
 | dedot_nested        | **Default**: `false`  Enables nesting dedot processing.                                                                                                                                                                                                                                                              |
 | dedot_new_seperator | **Default**: `"_"`  Seperator character to use when applying dedot processing.                                                                                                                                                                                                |
-| proxy_url | **Optional**: `http://<PROXY_HOST>:<PROXY_PORT>`  Support HTTP proxy processing.                                                                                                                                                                                                |
+| proxy_host | **Optional**: `<PROXY_HOST>:<PROXY_PORT>`  Support HTTP proxy processing.                                                                                                                                                                                                |
 | proxy_user | **Optional**: `""`  Support HTTP proxy user authentication.                                                                                                                                                                                                |
 | proxy_pass | **Optional**: `""`  Support HTTP proxy password authentication.                                                                                                                                                          |
 
@@ -165,7 +165,8 @@ Always confirm your logs are arriving at your Logz.io account.
 ## Change log
 - **0.4.0**:
     - Added HTTP proxy support.
-    - 
+    - Added Array fields support
+    - Improved retries.
 - **0.3.0**:
     - Added an optional dedot processing.
     - Upgraded to golang `1.19.1.` in docker image.
