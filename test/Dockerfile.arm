@@ -9,7 +9,7 @@ WORKDIR /go/src/logzio
 
 RUN make
 
-FROM fluent/fluent-bit:2.0.8
+FROM fluent/fluent-bit:2.1.9
 
 COPY --from=gobuilder /go/src/logzio/build/out_logzio.so /fluent-bit/bin/
 COPY --from=gobuilder /go/src/logzio/test/fluent-bit.conf /fluent-bit/etc/
