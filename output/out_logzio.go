@@ -321,10 +321,11 @@ func formatTimestamp(ts interface{}) time.Time {
 		s := reflect.ValueOf(t)
 		if s.Kind() != reflect.Slice || s.Len() < 2 {
 			// Expects a non-empty slice of length 2, so we won't extract a timestamp.
-		} else {
-			ts = s.Index(0).Interface() // First item is the timestamp.
-			timestamp = formatTimestamp(ts)
+			timestamp = formatTimestamp(s)
+			return timestamp
 		}
+		ts = s.Index(0).Interface() // First item is the timestamp.
+		timestamp = formatTimestamp(ts)
 	default:
 		fmt.Printf("Unknown format, defaulting to now, timestamp: %v of type: %T.\n", t, t)
 		timestamp = time.Now()
