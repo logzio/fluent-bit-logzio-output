@@ -79,13 +79,11 @@ jobs:
 
       - name: Create manifest version
         run: |
-          docker manifest create ${{ steps.dockeraction.outputs.tags }} --amend ${{ steps.dockeraction.outputs.tags }}-arm --amend ${{ steps.dockeraction.outputs.tags }}-amd
+          docker buildx imagetools create -t ${{ steps.dockeraction.outputs.tags }} \
+          ${{ steps.dockeraction.outputs.tags }}-arm \
+          ${{ steps.dockeraction.outputs.tags }}-amd
       - name: Create manifest latest
         run: |
-          docker manifest create logzio/fluent-bit-output:latest --amend logzio/fluent-bit-output:latest-arm --amend logzio/fluent-bit-output:latest-amd
-      - name: Push manifest latest
-        run: |
-          docker manifest push logzio/fluent-bit-output:latest
-      - name: Push manifest version
-        run: |
-          docker manifest push ${{ steps.dockeraction.outputs.tags }}
+          docker buildx imagetools create -t logzio/fluent-bit-output:latest \
+          logzio/fluent-bit-output:latest-arm \
+          logzio/fluent-bit-output:latest-amd
