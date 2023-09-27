@@ -14,14 +14,14 @@ jobs:
         uses: actions/checkout@v3
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -40,7 +40,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: ./test/Dockerfile.arm
+          file: ./test/Dockerfile.amd
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.dockeraction.outputs.tags }}-amd
@@ -48,17 +48,17 @@ jobs:
 
 
       - name: Build and push amd64 latest
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./test/Dockerfile.arm
+          file: ./test/Dockerfile.amd
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: logzio/fluent-bit-output:latest-amd
           labels: ${{ steps.dockeraction.outputs.labels }}
 
       - name: Build and push arm64 latest
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./test/Dockerfile.arm
@@ -68,7 +68,7 @@ jobs:
           labels: ${{ steps.dockeraction.outputs.labels }}
 
       - name: Build and push arm64
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: .
           file: ./test/Dockerfile.arm
@@ -79,13 +79,11 @@ jobs:
 
       - name: Create manifest version
         run: |
-          docker manifest create ${{ steps.dockeraction.outputs.tags }} --amend ${{ steps.dockeraction.outputs.tags }}-arm --amend ${{ steps.dockeraction.outputs.tags }}-amd
+          docker buildx imagetools create -t ${{ steps.dockeraction.outputs.tags }} \
+          ${{ steps.dockeraction.outputs.tags }}-arm \
+          ${{ steps.dockeraction.outputs.tags }}-amd
       - name: Create manifest latest
         run: |
-          docker manifest create logzio/fluent-bit-output:latest --amend logzio/fluent-bit-output:latest-arm --amend logzio/fluent-bit-output:latest-amd
-      - name: Push manifest latest
-        run: |
-          docker manifest push logzio/fluent-bit-output:latest
-      - name: Push manifest version
-        run: |
-          docker manifest push ${{ steps.dockeraction.outputs.tags }}
+          docker buildx imagetools create -t logzio/fluent-bit-output:latest \
+          logzio/fluent-bit-output:latest-arm \
+          logzio/fluent-bit-output:latest-amd

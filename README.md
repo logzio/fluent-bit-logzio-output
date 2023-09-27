@@ -167,6 +167,9 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.4.0**:
+    - Add timestamp decode support for new fluentbit versions.
+    - Update to fluent-bit `2.1.9` in docker image.
 - **0.3.0**:
     - Added an optional dedot processing.
     - Upgraded to golang `1.19.1.` in docker image.

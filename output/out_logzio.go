@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/fluent/fluent-bit-go/output"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -308,6 +309,7 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 }
 func formatTimestamp(ts interface{}) time.Time {
 	var timestamp time.Time
+
 	switch t := ts.(type) {
 	case output.FLBTime:
 		timestamp = ts.(output.FLBTime).Time
@@ -315,8 +317,17 @@ func formatTimestamp(ts interface{}) time.Time {
 		timestamp = time.Unix(int64(t), 0)
 	case time.Time:
 		timestamp = ts.(time.Time)
+	case []interface{}:
+		s := reflect.ValueOf(t)
+		if s.Kind() != reflect.Slice || s.Len() < 2 {
+			// Expects a non-empty slice of length 2, so we won't extract a timestamp.
+			timestamp = formatTimestamp(s)
+			return timestamp
+		}
+		ts = s.Index(0).Interface() // First item is the timestamp.
+		timestamp = formatTimestamp(ts)
 	default:
-		fmt.Print("Unknown format, defaulting to now.\n")
+		fmt.Printf("Unknown format, defaulting to now, timestamp: %v of type: %T.\n", t, t)
 		timestamp = time.Now()
 	}
 	return timestamp
