@@ -161,8 +161,8 @@ func (logzioClient *LogzioClient) createRequest() (*http.Request, int) {
 func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 	resp, err := logzioClient.client.Do(req)
 	if err != nil {
-		logzioClient.logger.Log(fmt.Sprintf("failed to do client request: %+v", err))
-		return output.FLB_ERROR
+		logzioClient.logger.Log(fmt.Sprintf("failed to do retryable client request: %+v", err))
+		return output.FLB_RETRY
 	}
 	defer resp.Body.Close()
 
@@ -181,7 +181,7 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 
 func (logzioClient *LogzioClient) shouldRetry(code int) int {
 	logzioClient.logger.Debug(fmt.Sprintf("response error code: %d", code))
-	if code >= 500 {
+	if code >= 500 || code == output.FLB_RETRY {
 		return output.FLB_RETRY
 	}
 	return output.FLB_ERROR
