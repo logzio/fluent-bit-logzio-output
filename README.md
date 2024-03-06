@@ -168,7 +168,7 @@ Always confirm your logs are arriving at your Logz.io account.
     - Added Array fields support
     - Improved retries.
 - **0.4.1**:
-  - Trim the compiler build path from stack traces.
+    - Trim the compiler build path from stack traces.
 - **0.4.0**:
     - Add timestamp decode support for new fluentbit versions.
     - Update to fluent-bit `2.1.9` in docker image.
