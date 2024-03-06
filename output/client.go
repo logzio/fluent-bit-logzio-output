@@ -198,31 +198,21 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 	if err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed attempting to read from logz.io listener: %+v.  Status %v", err, resp.StatusCode))
 	}
-	// retry in the same way as the fluent bit http plugin
-	if resp.StatusCode >= 500 {
-		logzioClient.logger.Log(fmt.Sprintf("received retryable HTTP status code from logz.io listener: %d", resp.StatusCode))
-		if body != nil {
-			logzioClient.logger.Log(fmt.Sprintf("  (%v)", string(body)))
-		}
-		return output.FLB_RETRY
-	} else if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		logzioClient.logger.Log(fmt.Sprintf("received non-retryable HTTP status code from logz.io listener: %d", resp.StatusCode))
-		if body != nil {
-			logzioClient.logger.Log(fmt.Sprintf("  (%v)", string(body)))
-		}
-		return output.FLB_ERROR
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		logzioClient.logger.Log(fmt.Sprintf("received a non-2xx HTTP status code from logz.io listener: %d (%v)", resp.StatusCode, string(body)))
+		return resp.StatusCode
 	}
 	logzioClient.logger.Debug("successfully sent bulk to logz.io\n")
 	return output.FLB_OK
 }
 
 func (logzioClient *LogzioClient) shouldRetry(code int) int {
-	logzioClient.logger.Debug(fmt.Sprintf("response error code: %d", code))
 	// follow fluent bit http plugin pattern
-	if code >= 500 {
-		logzioClient.logger.Log(fmt.Sprintf("retryable response error code: %d", code))
+	if code >= 500 { // TODO: add here '|| code == output.FLB_RETRY' from PR #27
+		logzioClient.logger.Debug(fmt.Sprintf("retryable response error code: %d", code))
 		return output.FLB_RETRY
 	}
+	logzioClient.logger.Debug(fmt.Sprintf("non-retryable response error code: %d", code))
 	return output.FLB_ERROR
 }
 
