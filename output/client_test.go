@@ -20,7 +20,7 @@ const (
 func TestClientWithDefaults(test *testing.T) {
 	logzioClient, err := NewClient(logzioTestToken)
 	require.NoError(test, err)
-	require.Equal(test, logzioClient.url, defaultURL)
+	require.Equal(test, logzioClient.listenerURL, defaultURL)
 	require.Equal(test, logzioClient.logger.debug, false)
 }
 
@@ -122,7 +122,7 @@ func doStatusCodeResponseTest(test *testing.T, statusCode int, expected int) {
 func LogzioTestClient(testURL string) *LogzioClient {
 	return &LogzioClient{
 		token:                logzioTestToken,
-		url:                  testURL,
+		listenerURL:          testURL,
 		logger:               NewLogger("testing", true),
 		client:               http.DefaultClient,
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,

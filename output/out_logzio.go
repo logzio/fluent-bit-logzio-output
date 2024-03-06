@@ -5,9 +5,9 @@ package main
 
 import (
 	"C"
-	"encoding/json"
 	"fmt"
 	"github.com/fluent/fluent-bit-go/output"
+	jsoniter "github.com/json-iterator/go"
 	"os"
 	"reflect"
 	"regexp"
@@ -195,10 +195,10 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		ltype = defaultLogType
 	}
 
-	url := output.FLBPluginConfigKey(ctx, "logzio_url")
-	if url == "" {
-		logger.Debug(fmt.Sprintf("using default url: %s", defaultURL))
-		url = defaultURL
+	listenerURL := output.FLBPluginConfigKey(ctx, "logzio_url")
+	if listenerURL == "" {
+		logger.Debug(fmt.Sprintf("using default listener url: %s", defaultURL))
+		listenerURL = defaultURL
 	}
 
 	token := output.FLBPluginConfigKey(ctx, "logzio_token")
@@ -225,9 +225,14 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	}
 	logger.Debug(fmt.Sprintf("dedot seperator: %s", dedotNewSeperator))
 
+	proxyHost := output.FLBPluginConfigKey(ctx, "proxy_host") // proxyHost:proxyPort
+	proxyUser := output.FLBPluginConfigKey(ctx, "proxy_user") // admin
+	proxyPass := output.FLBPluginConfigKey(ctx, "proxy_pass") // password1234
+
 	client, err := NewClient(token,
-		SetURL(url),
+		SetURL(listenerURL),
 		SetDebug(debug),
+		SetProxy(proxyHost, proxyUser, proxyPass),
 	)
 
 	if err != nil {
@@ -274,7 +279,7 @@ func serializeRecord(ts interface{}, tag string, record map[interface{}]interfac
 	body["@timestamp"] = formatTimestamp(ts)
 	body["fluentbit_tag"] = tag
 
-	serialized, err := json.Marshal(body)
+	serialized, err := jsoniter.Marshal(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert %+v to JSON: %v", record, err)
 	}
@@ -301,6 +306,22 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 				dedotEnabled = false
 			}
 			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
+		case []interface{}:
+			var array []interface{}
+			for _, e := range v.([]interface{}) {
+				switch t := e.(type) {
+				case []byte:
+					array = append(array, string(t))
+				case map[interface{}]interface{}:
+					if !dedotNested {
+						dedotEnabled = false
+					}
+					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator))
+				default:
+					array = append(array, e)
+				}
+			}
+			jsonRecord[stringKey] = array
 		default:
 			jsonRecord[stringKey] = v
 		}
