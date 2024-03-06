@@ -46,7 +46,7 @@ We plan to add support for multiple streams in the future. <br>
 In the meantime,
 we recommend running a new instance for each output stream you need.
 
-For a list of options, see the configuration parameters below the code block. 👇
+For a list of options, see the [configuration parameters](#config-params) below to add to the code block. 👇
 
 ```python
 [OUTPUT]
@@ -57,17 +57,6 @@ For a list of options, see the configuration parameters below the code block. �
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
 ```
-
-**Parameters**
-
-| Parameter    | Description                                                                                                                                                                                                                                                                                                              |
-|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
-| logzio_url   | **Default**: `https://listener.logz.io:8071`  Listener URL and port. Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type  | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
-| logzio_debug | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                               |
-| id           | **Default**: `logzio_output_1`  Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
-
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
 ```shell
@@ -101,7 +90,7 @@ We plan to add support for multiple streams in the future. <br>
 In the meantime,
 we recommend running a new instance for each output stream you need.
 
-For a list of options, see the configuration parameters below the code block. 👇
+For a list of options, see the [configuration parameters](#config-params) below to add to the code block. 👇
 
 ```python
 [SERVICE]
@@ -115,19 +104,6 @@ For a list of options, see the configuration parameters below the code block. �
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
 ```
-
-**Parameters**
-
-| Parameter           | Description                                                                                                                                                                                                                                                                                                              |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| logzio_token        | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
-| logzio_url          | **Default**: `https://listener.logz.io:8071`  Listener URL and port. <br> Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
-| logzio_type         | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
-| logzio_debug        | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                              |
-| id                  | **Default**: `logzio_output_1` < Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
-| dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                      |
-| dedot_nested        | **Default**: `false`  Enables nesting dedot processing.                                                                                                                                                                                                                                                              |
-| dedot_new_seperator | **Default**: `"_"`  Seperator character to use when applying dedot processing.                                                                                                                                                                                                |
 #### 2.  Run the Docker image
 
 Run the Docker image
@@ -144,6 +120,26 @@ logzio/fluent-bit-output
 Give your logs some time to get from your system to ours, and then open [Kibana](https://app.logz.io/#/dashboard/kibana).
 
 If you still don't see your logs, see [log shipping troubleshooting](https://docs.logz.io/user-guide/log-shipping/log-shipping-troubleshooting.html).
+
+</div>
+
+<div id="config-params">
+
+## Output Parameters
+
+| Parameter    | Description                                                                                                                                                                                                                                                                                                              |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| logzio_token | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                                        |
+| logzio_url   | **Default**: `https://listener.logz.io:8071`  Listener URL and port. Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
+| logzio_type  | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                       |
+| logzio_debug | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                               |
+| id           | **Default**: `logzio_output_1`  Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                                    |
+| dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                      |
+| dedot_nested        | **Default**: `false`  Enables nesting dedot processing.                                                                                                                                                                                                                                                              |
+| dedot_new_seperator | **Default**: `"_"`  Seperator character to use when applying dedot processing.                                                                                                                                                                                                |
+| proxy_host | **Optional**: `<PROXY_HOST>:<PROXY_PORT>`  Support HTTP proxy processing.                                                                                                                                                                                                |
+| proxy_user | **Optional**: `""`  Support HTTP proxy user authentication.                                                                                                                                                                                                |
+| proxy_pass | **Optional**: `""`  Support HTTP proxy password authentication.                                                                                                                                                          |
 
 </div>
 
@@ -167,8 +163,10 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
-- **0.4.1**:
-    - Trim the compiler build path from stack traces.
+ - **0.5.0**:
+    - Added HTTP proxy support.
+    - Added Array fields support
+    - Improved retries.
 - **0.4.0**:
     - Add timestamp decode support for new fluentbit versions.
     - Update to fluent-bit `2.1.9` in docker image.

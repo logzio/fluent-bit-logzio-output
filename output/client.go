@@ -8,11 +8,11 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"fmt"
+	"github.com/fluent/fluent-bit-go/output"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
-
-	"github.com/fluent/fluent-bit-go/output"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 // LogzioClient http client that sends bulks to Logz.io http listener
 type LogzioClient struct {
-	url                  string
+	listenerURL          string
 	token                string
 	bulk                 []byte
 	client               *http.Client
@@ -38,16 +38,15 @@ type ClientOptionFunc func(*LogzioClient) error
 // NewClient is a constructor for Logz.io http client
 func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error) {
 	logzioClient := &LogzioClient{
-		url:                  defaultURL,
+		listenerURL:          defaultURL,
 		token:                token,
 		logger:               NewLogger(outputName, false),
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
 	}
-
 	tlsConfig := &tls.Config{}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment,
+		Proxy:           http.ProxyFromEnvironment, // proxy_url set in out_logzio.go
 	}
 	// in case server side is sleeping - wait 10s instead of waiting for him to wake up
 	httpClient := &http.Client{
@@ -67,10 +66,10 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 }
 
 // SetURL set the url which maybe different from the defaultUrl
-func SetURL(url string) ClientOptionFunc {
+func SetURL(listenerURL string) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
-		logzioClient.url = url
-		logzioClient.logger.Debug(fmt.Sprintf("setting url to %s\n", url))
+		logzioClient.listenerURL = listenerURL
+		logzioClient.logger.Debug(fmt.Sprintf("setting listener url to %s\n", listenerURL))
 		return nil
 	}
 }
@@ -85,7 +84,7 @@ func SetDebug(debug bool) ClientOptionFunc {
 }
 
 // SetBodySizeThreshold set the maximum body size of the client http request
-// The param in in MB and can be between 0(mostly for testing) and 9
+// The param is in MB and can be between 0(mostly for testing) and 9
 func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
 		logzioClient.sizeThresholdInBytes = threshold * megaByte
@@ -94,6 +93,33 @@ func SetBodySizeThreshold(threshold int) ClientOptionFunc {
 			logzioClient.sizeThresholdInBytes = maxRequestBodySizeInBytes
 		}
 		logzioClient.logger.Debug(fmt.Sprintf("setting BodySizeThreshold to %d\n", logzioClient.sizeThresholdInBytes))
+		return nil
+	}
+}
+
+// SetProxy set the http proxy url
+func SetProxy(proxyHost string, proxyUser string, proxyPass string) ClientOptionFunc {
+	return func(logzioClient *LogzioClient) error {
+		if proxyHost != "" {
+			proxyURLStr := fmt.Sprintf("http://%s", proxyHost)
+
+			if proxyUser != "" && proxyPass != "" {
+				proxyURLStr = fmt.Sprintf("http://%s:%s@%s", proxyUser, proxyPass, proxyHost)
+			}
+			logzioClient.logger.Debug(fmt.Sprintf("setting http proxy url to %s\n", proxyURLStr))
+			if proxyURLStr != "http://" && proxyURLStr != "http://:@" {
+				proxyURL, err := url.Parse(proxyURLStr)
+				if err != nil {
+					fmt.Printf("Failed to set proxy url: %s.\nError:\n%s.", proxyURLStr, err)
+				} else {
+
+					transport := http.Transport{}
+					transport.Proxy = http.ProxyURL(proxyURL) // set proxy
+					logzioClient.client.Transport = &transport
+				}
+			}
+		}
+
 		return nil
 	}
 }
@@ -139,18 +165,18 @@ func (logzioClient *LogzioClient) createRequest() (*http.Request, int) {
 
 	if _, err := gzipWriter.Write(logzioClient.bulk); err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed to write body with gzip writer: %+v", err))
-		return nil, output.FLB_ERROR
+		return nil, output.FLB_RETRY
 	}
 
 	if err := gzipWriter.Close(); err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed to close gzip writer: %+v", err))
-		return nil, output.FLB_ERROR
+		return nil, output.FLB_RETRY
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/?token=%s", logzioClient.url, logzioClient.token), &buf)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/?token=%s", logzioClient.listenerURL, logzioClient.token), &buf)
 	if err != nil {
 		logzioClient.logger.Log(fmt.Sprintf("failed to create a request: %+v", err))
-		return nil, output.FLB_ERROR
+		return nil, output.FLB_RETRY
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -166,10 +192,10 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 	}
 	defer resp.Body.Close()
 
+	// While we should be able to read the response body, it's not required.  so log but don't return
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logzioClient.logger.Log(fmt.Sprintf("received an error attempting to read from logz.io listener: %+v", err))
-		return resp.StatusCode
+		logzioClient.logger.Log(fmt.Sprintf("failed attempting to read from logz.io listener: %+v.  Status %v", err, resp.StatusCode))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		logzioClient.logger.Log(fmt.Sprintf("received a non-2xx HTTP status code from logz.io listener: %d (%v)", resp.StatusCode, string(body)))
@@ -180,10 +206,12 @@ func (logzioClient *LogzioClient) doRequest(req *http.Request) int {
 }
 
 func (logzioClient *LogzioClient) shouldRetry(code int) int {
-	logzioClient.logger.Debug(fmt.Sprintf("response error code: %d", code))
+	// follow fluent bit http plugin pattern
 	if code >= 500 || code == output.FLB_RETRY {
+		logzioClient.logger.Debug(fmt.Sprintf("retryable response error code: %d", code))
 		return output.FLB_RETRY
 	}
+	logzioClient.logger.Debug(fmt.Sprintf("non-retryable response error code: %d", code))
 	return output.FLB_ERROR
 }
 
