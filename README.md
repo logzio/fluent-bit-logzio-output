@@ -163,7 +163,9 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
- - **0.5.0**:
+- **0.6.0**:
+    - Upgrade fluent-bit official image to v3.0.4
+- **0.5.0**:
     - Added HTTP proxy support.
     - Added Array fields support
     - Improved retries.
