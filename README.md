@@ -25,10 +25,22 @@ wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
 ```
 
+For Linux with ARM64 Architecture:
+```shell
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
+    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux-arm64.so
+```
+
 For MacOS:
 ```shell
 wget -O /fluent-bit/plugins/out_logzio-linux.so \
     https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS.so
+```
+
+For MacOS with ARM64 Architecture:
+```shell
+wget -O /fluent-bit/plugins/out_logzio-linux.so \
+    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS-arm64.so
 ```
 
 For Windows:

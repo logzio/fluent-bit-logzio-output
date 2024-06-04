@@ -18,3 +18,9 @@ linux-amd:
 linux-arm:
 	# brew install aarch64-unknown-linux-gnu
 	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-unknown-linux-gnu-gcc go build -trimpath -buildmode=c-shared -o build/out_logzio-linux-arm64.so ./output
+
+darwin:
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -trimpath -buildmode=c-shared -o build/out_logzio-macOS.so ./output
+
+darwin-arm:
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -trimpath -buildmode=c-shared -o build/out_logzio-macOS-arm64.so ./output
