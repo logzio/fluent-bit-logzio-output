@@ -23,7 +23,7 @@ func TestSerializeRecord(test *testing.T) {
 	record["five"] = 5
 	testServer := time.Now()
 
-	serialize, err := serializeRecord(testServer, "atag", record, "logzio", defaultId)
+	serialize, err := serializeRecord(testServer, "atag", record, "logzio", defaultId, false, false, "_")
 	require.NoError(test, err)
 	require.NotNil(test, serialize, "nil json")
 
