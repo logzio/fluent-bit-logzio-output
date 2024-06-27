@@ -31,6 +31,11 @@ func (l *Logger) Log(message string) {
 	log.Printf("[%s] %s", l.prefix, message)
 }
 
+// Warn prints warning logs.
+func (l *Logger) Warn(message string) {
+	log.Printf("[WARN] [%s] %s", l.prefix, message)
+}
+
 // SetDebug sets debug flag.
 func (l *Logger) SetDebug(debug bool) {
 	l.debug = debug

@@ -240,15 +240,15 @@ func initConfigParams(ctx unsafe.Pointer) error {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				if key == "" {
-					logger.Log(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
+					logger.Warn(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
 					continue
 				}
 				if _, exists := headers[key]; exists {
-					logger.Log(fmt.Sprintf("Warning: duplicate header key '%s'. Overwriting existing value.", key))
+					logger.Warn(fmt.Sprintf("Warning: duplicate header key '%s'. Overwriting existing value.", key))
 				}
 				headers[key] = value
 			} else {
-				logger.Log(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
+				logger.Warn(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
 			}
 		}
 	}
