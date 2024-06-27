@@ -46,6 +46,23 @@ func TestRequestHeaders(test *testing.T) {
 	require.Equal(test, res, output.FLB_OK)
 }
 
+func TestNoHeaders(test *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(test, "gzip", r.Header.Get("Content-Encoding"))
+		require.Equal(test, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(test, "", r.Header.Get("X-Custom-Header1"))
+		require.Equal(test, "", r.Header.Get("X-Custom-Header2"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	logzioClient, err := NewClient(logzioTestToken, SetURL(testServer.URL))
+	require.NoError(test, err)
+
+	res := logzioClient.Send([]byte("test"))
+	require.Equal(test, res, output.FLB_OK)
+}
+
 func TestStatusOKCodeResponse(test *testing.T) {
 	doStatusCodeResponseTest(test, http.StatusOK, output.FLB_OK)
 }

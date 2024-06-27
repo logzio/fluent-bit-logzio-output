@@ -237,7 +237,18 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		for _, header := range strings.Split(headerConfig, ",") {
 			parts := strings.SplitN(header, ":", 2)
 			if len(parts) == 2 {
-				headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				if key == "" {
+					logger.Log(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
+					continue
+				}
+				if _, exists := headers[key]; exists {
+					logger.Log(fmt.Sprintf("Warning: duplicate header key '%s'. Overwriting existing value.", key))
+				}
+				headers[key] = value
+			} else {
+				logger.Log(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
 			}
 		}
 	}
