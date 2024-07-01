@@ -28,11 +28,37 @@ func TestRequestHeaders(test *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(test, "gzip", r.Header.Get("Content-Encoding"))
 		require.Equal(test, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(test, "header_value_1", r.Header.Get("X-Custom-Header1"))
+		require.Equal(test, "header_value_2", r.Header.Get("X-Custom-Header2"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer testServer.Close()
 
-	logzioClient := LogzioTestClient(testServer.URL)
+	headers := map[string]string{
+		"X-Custom-Header1": "header_value_1",
+		"X-Custom-Header2": "header_value_2",
+	}
+
+	logzioClient, err := NewClient(logzioTestToken, SetURL(testServer.URL), SetHeaders(headers))
+	require.NoError(test, err)
+
+	res := logzioClient.Send([]byte("test"))
+	require.Equal(test, res, output.FLB_OK)
+}
+
+func TestNoHeaders(test *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(test, "gzip", r.Header.Get("Content-Encoding"))
+		require.Equal(test, "application/json", r.Header.Get("Content-Type"))
+		require.Equal(test, "", r.Header.Get("X-Custom-Header1"))
+		require.Equal(test, "", r.Header.Get("X-Custom-Header2"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	logzioClient, err := NewClient(logzioTestToken, SetURL(testServer.URL))
+	require.NoError(test, err)
+
 	res := logzioClient.Send([]byte("test"))
 	require.Equal(test, res, output.FLB_OK)
 }

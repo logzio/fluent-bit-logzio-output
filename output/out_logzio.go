@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -36,6 +37,7 @@ type LogzioOutput struct {
 	dedotEnabled      bool
 	dedotNested       bool
 	dedotNewSeperator string
+	headers           map[string]string
 }
 
 var (
@@ -229,10 +231,33 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	proxyUser := output.FLBPluginConfigKey(ctx, "proxy_user") // admin
 	proxyPass := output.FLBPluginConfigKey(ctx, "proxy_pass") // password1234
 
+	headers := make(map[string]string)
+	headerConfig := output.FLBPluginConfigKey(ctx, "headers")
+	if headerConfig != "" {
+		for _, header := range strings.Split(headerConfig, ",") {
+			parts := strings.SplitN(header, ":", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				if key == "" {
+					logger.Warn(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
+					continue
+				}
+				if _, exists := headers[key]; exists {
+					logger.Warn(fmt.Sprintf("Warning: duplicate header key '%s'. Overwriting existing value.", key))
+				}
+				headers[key] = value
+			} else {
+				logger.Warn(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
+			}
+		}
+	}
+
 	client, err := NewClient(token,
 		SetURL(listenerURL),
 		SetDebug(debug),
 		SetProxy(proxyHost, proxyUser, proxyPass),
+		SetHeaders(headers),
 	)
 
 	if err != nil {
@@ -247,6 +272,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		dedotEnabled:      dedotEnabled,
 		dedotNested:       dedotNested,
 		dedotNewSeperator: dedotNewSeperator,
+		headers:           headers,
 	}
 
 	return nil

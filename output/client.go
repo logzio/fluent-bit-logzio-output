@@ -30,6 +30,7 @@ type LogzioClient struct {
 	client               *http.Client
 	logger               *Logger
 	sizeThresholdInBytes int
+	headers              map[string]string
 }
 
 // ClientOptionFunc options for Logz.io
@@ -42,6 +43,7 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 		token:                token,
 		logger:               NewLogger(outputName, false),
 		sizeThresholdInBytes: maxRequestBodySizeInBytes,
+		headers:              make(map[string]string),
 	}
 	tlsConfig := &tls.Config{}
 	transport := &http.Transport{
@@ -63,6 +65,13 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 	}
 
 	return logzioClient, nil
+}
+
+func SetHeaders(headers map[string]string) ClientOptionFunc {
+	return func(logzioClient *LogzioClient) error {
+		logzioClient.headers = headers
+		return nil
+	}
 }
 
 // SetURL set the url which maybe different from the defaultUrl
@@ -181,6 +190,11 @@ func (logzioClient *LogzioClient) createRequest() (*http.Request, int) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+
+	for key, value := range logzioClient.headers {
+		req.Header.Set(key, value)
+	}
+
 	return req, output.FLB_OK
 }
 
