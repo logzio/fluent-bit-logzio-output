@@ -175,6 +175,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.6.2**:
+    - Updated cross-compilation support for multiple platforms.
 - **0.6.1**:
     - Added support for custom HTTP headers.
     - Validation for malformed headers, duplicate keys, and logging of warnings.
