@@ -177,6 +177,8 @@ Always confirm your logs are arriving at your Logz.io account.
 ## Change log
 - **0.6.2**:
   - Resolve bug with exit code handling to ensure all buffered logs are flushed before termination.
+  - Upgrade golang to `1.22`.
+  - Upgrade fluent-bit official image to `3.1.4`.
 - **0.6.1**:
     - Added support for custom HTTP headers.
     - Validation for malformed headers, duplicate keys, and logging of warnings.
