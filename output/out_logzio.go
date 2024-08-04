@@ -165,7 +165,9 @@ func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int 
 //
 //export FLBPluginExit
 func FLBPluginExit() int {
-	plugin.Flush(nil)
+	for _, exporter := range outputs {
+		plugin.Flush(exporter.client)
+	}
 	return output.FLB_OK
 }
 
