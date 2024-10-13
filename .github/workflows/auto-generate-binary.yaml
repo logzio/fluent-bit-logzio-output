@@ -1,0 +1,31 @@
+name: Auto generate `.so` binary
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Get the repository's code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup Go
+      - name: setup go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+
+      # Build binary
+      - name: Build .so files
+        run: make
+
+      # Upload binary to release assets
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          fail_on_unmatched_files: true
+          files: ./build/*.so
