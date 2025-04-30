@@ -68,6 +68,8 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
+    logzio_type <<your_log_type>>
+    logzio_bulk_size_mb 2
 ```
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
@@ -115,6 +117,7 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
+    logzio_type <<your_log_type>>
 ```
 #### 2.  Run the Docker image
 
@@ -144,6 +147,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 | logzio_token        | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                               |
 | logzio_url          | **Default**: `https://listener.logz.io:8071`  Listener URL and port. Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
 | logzio_type         | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                  |
+| logzio_bulk_size_mb  | **Default**: `2` Max uncompressed bulk size (MB) before flushing (1-9). Lower values prevent crashes/reduce memory; higher values may increase throughput but use more resources. |
 | logzio_debug        | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                          |
 | id                  | **Default**: `logzio_output_1`  Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                               |
 | dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                 |
@@ -159,7 +163,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 
 **Requirements**:
 
-* Go version >= 1.11.x
+* Go version >= 1.22.x
 
 To contribute, clone this repo
 and install dependencies
@@ -175,6 +179,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.6.3**:
+  - Fix potential stack overflow: Reduced default bulk size to 2MB, added `logzio_bulk_size_mb` config (1-9 MB).
 - **0.6.2**:
   - Resolve bug with exit code handling to ensure all buffered logs are flushed before termination.
   - Upgrade golang to `1.22`.
