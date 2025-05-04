@@ -36,7 +36,7 @@ type LogzioOutput struct {
 	id                string
 	dedotEnabled      bool
 	dedotNested       bool
-	dedotNewSeperator string
+	dedotNewSeparator string
 	headers           map[string]string
 }
 
@@ -232,7 +232,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 	dedotEnabledStr := plugin.Environment(ctx, "dedot_enabled")
 	dedotEnabled, err := strconv.ParseBool(dedotEnabledStr) 
 	dedotNested := false
-	dedotNewSeperator := "_" 
+	dedotNewSeparator := "_" 
 	if err == nil && dedotEnabled {
 		dedotNestedStr := plugin.Environment(ctx, "dedot_nested")
 		dedotNested, err = strconv.ParseBool(dedotNestedStr)
@@ -240,16 +240,16 @@ func initConfigParams(ctx unsafe.Pointer) error {
 			instanceLogger.Debug(fmt.Sprintf("Failed parsing dedot nested value, set to false"))
 			dedotNested = false 
 		}
-		dedotNewSeperator = plugin.Environment(ctx, "dedot_new_seperator")
-		if dedotNewSeperator == "" || dedotNewSeperator == "." {
-			instanceLogger.Debug(fmt.Sprintf("Invalid or empty dedot new seperator value, set to _"))
-			dedotNewSeperator = "_"
+		dedotNewSeparator = plugin.Environment(ctx, "dedot_new_separator")
+		if dedotNewSeparator == "" || dedotNewSeparator == "." {
+			instanceLogger.Debug(fmt.Sprintf("Invalid or empty dedot new separator value, set to _"))
+			dedotNewSeparator = "_"
 		}
 	} else {
 		instanceLogger.Debug(fmt.Sprintf("dedot_enabled is false or failed to parse, disabling dedot features"))
 		dedotEnabled = false // Ensure false
 	}
-	instanceLogger.Debug(fmt.Sprintf("Dedot enabled: %t, Nested: %t, Separator: '%s'", dedotEnabled, dedotNested, dedotNewSeperator))
+	instanceLogger.Debug(fmt.Sprintf("Dedot enabled: %t, Nested: %t, Separator: '%s'", dedotEnabled, dedotNested, dedotNewSeparator))
 
 	// Proxy Config
 	proxyHost := plugin.Environment(ctx, "proxy_host")
@@ -315,7 +315,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 		id:                outputId,
 		dedotEnabled:      dedotEnabled,
 		dedotNested:       dedotNested,
-		dedotNewSeperator: dedotNewSeperator,
+		dedotNewSeparator: dedotNewSeparator,
 		headers:           headers,
 	}
 
@@ -324,7 +324,7 @@ func initConfigParams(ctx unsafe.Pointer) error {
 }
 
 func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, instance *LogzioOutput) ([]byte, error) {
-	body := parseJSON(record, instance.dedotEnabled, instance.dedotNested, instance.dedotNewSeperator)
+	body := parseJSON(record, instance.dedotEnabled, instance.dedotNested, instance.dedotNewSeparator)
 
 	body["@timestamp"] = formatTimestamp(ts) 
 	body["fluentbit_tag"] = tag
@@ -352,14 +352,14 @@ func serializeRecord(ts interface{}, tag string, record map[interface{}]interfac
 	return serialized, nil
 }
 
-func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNested bool, dedotNewSeperator string) map[string]interface{} {
+func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNested bool, dedotNewSeparator string) map[string]interface{} {
 	jsonRecord := make(map[string]interface{})
 
 	for k, v := range record {
 		stringKey := k.(string)
 		if dedotEnabled {
 			regex := regexp.MustCompile("\\.")
-			stringKey = regex.ReplaceAllString(stringKey, dedotNewSeperator)
+			stringKey = regex.ReplaceAllString(stringKey, dedotNewSeparator)
 		}
 
 		switch t := v.(type) {
@@ -370,7 +370,7 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 			if !dedotNested {
 				dedotEnabled = false
 			}
-			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
+			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeparator)
 		case []interface{}:
 			var array []interface{}
 			for _, e := range v.([]interface{}) {
@@ -381,7 +381,7 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 					if !dedotNested {
 						dedotEnabled = false
 					}
-					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator))
+					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeparator))
 				default:
 					array = append(array, e)
 				}

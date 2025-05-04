@@ -65,7 +65,7 @@ func TestSerializeRecord(test *testing.T) {
 		ltype:             "type1",
 		id:                "out1",
 		dedotEnabled:      false,
-		dedotNewSeperator: "_",
+		dedotNewSeparator: "_",
 	}
 	record := map[interface{}]interface{}{"key": "value"}
 	testTime := time.Now()
