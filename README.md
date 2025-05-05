@@ -201,6 +201,7 @@ Always confirm your logs are arriving at your Logz.io account.
 ## Change log
 - **0.6.3**:
   - Fix potential stack overflow: Reduced default bulk size to 2MB, added `logzio_bulk_size_mb` config (1-9 MB).
+  - Automate multi-platform binary release assets
 - **0.6.2**:
   - Resolve bug with exit code handling to ensure all buffered logs are flushed before termination.
   - Upgrade golang to `1.22`.
