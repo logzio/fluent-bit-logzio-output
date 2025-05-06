@@ -19,47 +19,39 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
-First, find the **plugin directory** for your Fluent Bit installation (e.g., `/usr/lib/fluent-bit/plugins/`, `C:\Program Files\fluent-bit\lib\`, or a custom path). Check your Fluent Bit documentation or setup if unsure.
+First, find the **plugin directory** for your Fluent Bit installation (e.g., `/usr/lib/fluent-bit/plugins/`, `C:\Program Files\fluent-bit\lib\`, or a custom path). You will need to move the downloaded file into this directory. Check your Fluent Bit documentation or setup if unsure.
 
-Next, use the command below that matches your Operating System and CPU Architecture.
+The commands below will download the **latest** stable version of the plugin binary for your platform into your current working directory.
 
-- Replace `<YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>` with the actual plugin directory path you identified.
-- Replace `<<RELEASE_VERSION>>` with the specific plugin version tag you want to install (e.g., `v0.6.3`). You can find the available version tags on the [Logz.io Fluent Bit Plugin Releases page](https://github.com/logzio/fluent-bit-logzio-output/releases).
+- *(Optional)* If you need a specific version instead of the latest, replace `latest` in the download URL with the desired version tag (e.g., `v0.6.3`). You can find tags on the [Releases page](https://github.com/logzio/fluent-bit-logzio-output/releases).
 
 
 * **For Linux (amd64):**
     ```shell
-    wget -O <YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>/out_logzio-linux-amd64.so \
-        https://github.com/logzio/fluent-bit-logzio-output/releases/download/<<RELEASE_VERSION>>/out_logzio-linux-amd64.so
+    wget https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-linux-amd64.so
     ```
 
 * **For Linux (arm64):**
     ```shell
-    wget -O <YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>/out_logzio-linux-arm64.so \
-        https://github.com/logzio/fluent-bit-logzio-output/releases/download/<<RELEASE_VERSION>>/out_logzio-linux-arm64.so
+    wget https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-linux-arm64.so
     ```
 
 * **For macOS (amd64):**
     ```shell
-    wget -O <YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>/out_logzio-macos-amd64.so \
-        https://github.com/logzio/fluent-bit-logzio-output/releases/download/<<RELEASE_VERSION>>/out_logzio-macos-amd64.so
+    wget https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-macos-amd64.so
     ```
 
 * **For macOS (arm64):**
     ```shell
-    wget -O <YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>/out_logzio-macos-arm64.so \
-        https://github.com/logzio/fluent-bit-logzio-output/releases/download/<<RELEASE_VERSION>>/out_logzio-macos-arm64.so
+    wget https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-macos-arm64.so
     ```
 
 * **For Windows (amd64):**
     ```powershell
-    # Example using PowerShell: Ensure target directory exists first!
-    $pluginDir = "C:\path\to\your\fluent-bit\plugins" # Set your actual plugin path
-    $releaseVersion = "<<RELEASE_VERSION>>" # Set actual release version
-    $downloadUrl = "https://github.com/logzio/fluent-bit-logzio-output/releases/download/{0}/out_logzio-windows-amd64.dll" -f $releaseVersion
-    $outputFile = Join-Path $pluginDir "out_logzio-windows-amd64.dll"
-
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile
+    $fileName = "out_logzio-windows-amd64.dll"
+    $downloadUrl = "https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/{0}" -f $fileName
+    
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $fileName
     ```
 
 Finally, in your Fluent Bit configuration file (`fluent-bit.conf` by default), add Logz.io as an output. Ensure Fluent Bit is configured to load plugins from the directory where you saved the file (this might be automatic, or require the `Plugins_File` directive or the `-e` startup flag pointing to the specific `.so`/`.dll` file).
@@ -90,12 +82,16 @@ How you run Fluent Bit depends on your installation method. Ensure the configura
 
 If the plugin file (.so or .dll) isn't in a standard auto-detected path by Fluent Bit, you might need to use the -e flag (for external plugins) or ensure it's listed in your Plugins_File specified in the [SERVICE] section.
 
-Example using -e (replace path and filename):
+**Example using `-e`:**
+
+Replace `<PATH_TO_YOUR_PLUGIN_FILE>` with the **full path** to where you saved the downloaded `.so` or `.dll` file, and replace `<YOUR_CONFIG_FILE_PATH>` with the path to your `fluent-bit.conf`.
 
 ```shell
-# Ensure the path and filename match where you downloaded the binary
-fluent-bit -e <YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>/out_logzio-linux-amd64.so \
--c /path/to/your/fluent-bit.conf
+# Example for Linux/macOS - adjust plugin filename as needed
+fluent-bit -e <PATH_TO_YOUR_PLUGIN_FILE>/out_logzio-linux-amd64.so -c <YOUR_CONFIG_FILE_PATH>/fluent-bit.conf
+
+# Example for Windows (Command Prompt) - adjust plugin filename as needed
+fluent-bit.exe -e C:\path\to\plugin\out_logzio-windows-amd64.dll -c C:\path\to\config\fluent-bit.conf
 ```
 
 #### 4.  Check Logz.io for your logs
