@@ -19,11 +19,12 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
-First, find the **plugin directory** used by your Fluent Bit installation. This location depends on how Fluent Bit was installed (e.g., package manager, source build, Docker). Common locations include `/usr/lib/fluent-bit/plugins/`, `/opt/td-agent-bit/plugins/`, `/etc/fluent-bit/plugins/`, or a custom path specified in your configuration (`Plugins_File` directive) or startup command (`-e` flag). Check your Fluent Bit documentation or setup if unsure.
+First, find the **plugin directory** for your Fluent Bit installation (e.g., `/usr/lib/fluent-bit/plugins/`, `C:\Program Files\fluent-bit\lib\`, or a custom path). Check your Fluent Bit documentation or setup if unsure.
 
-Next, download the appropriate pre-compiled binary for your platform from the [**Logz.io Fluent Bit Plugin Releases**](https://github.com/logzio/fluent-bit-logzio-output/releases). Find the latest release version tag (e.g., `v0.6.3`) on that page.
+Next, use the command below that matches your Operating System and CPU Architecture.
 
-Replace `<<RELEASE_VERSION>>` with the actual version tag and `<YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>` with the correct plugin directory path for your system in the commands below.
+- Replace `<YOUR_FLUENT_BIT_PLUGIN_DIRECTORY>` with the actual plugin directory path you identified.
+- Replace `<<RELEASE_VERSION>>` with the specific plugin version tag you want to install (e.g., `v0.6.3`). You can find the available version tags on the [Logz.io Fluent Bit Plugin Releases page](https://github.com/logzio/fluent-bit-logzio-output/releases).
 
 
 * **For Linux (amd64):**
@@ -80,7 +81,7 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
-    logzio_type <<your_log_type>>
+    logzio_type <<LOG_TYPE>>
     logzio_bulk_size_mb 2
 ```
 #### 3.  Run Fluent Bit with the Logz.io plugin
@@ -138,7 +139,7 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
-    logzio_type <<your_log_type>>
+    logzio_type <<LOG_TYPE>>
 ```
 #### 2.  Run the Docker image
 
