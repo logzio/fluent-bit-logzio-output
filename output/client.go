@@ -18,8 +18,11 @@ import (
 const (
 	defaultURL                = "https://listener.logz.io:8071"
 	defaultId                 = "logzio_output_1"
-	maxRequestBodySizeInBytes = 9 * 1024 * 1024 // 9MB
 	megaByte                  = 1 * 1024 * 1024 // 1MB
+	defaultSizeThresholdMB 	  = 2 
+	minSizeThresholdMB     	  = 1 
+	maxSizeThresholdMB     	  = 9 
+
 )
 
 // LogzioClient http client that sends bulks to Logz.io http listener
@@ -42,7 +45,7 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 		listenerURL:          defaultURL,
 		token:                token,
 		logger:               NewLogger(outputName, false),
-		sizeThresholdInBytes: maxRequestBodySizeInBytes,
+		sizeThresholdInBytes: defaultSizeThresholdMB * megaByte,
 		headers:              make(map[string]string),
 	}
 	tlsConfig := &tls.Config{}
@@ -64,6 +67,9 @@ func NewClient(token string, options ...ClientOptionFunc) (*LogzioClient, error)
 		}
 	}
 
+	logzioClient.logger.Debug(fmt.Sprintf("LogzioClient created. Using bulk size threshold: %d bytes (%d MB)",
+		logzioClient.sizeThresholdInBytes, logzioClient.sizeThresholdInBytes/megaByte))
+
 	return logzioClient, nil
 }
 
@@ -77,6 +83,10 @@ func SetHeaders(headers map[string]string) ClientOptionFunc {
 // SetURL set the url which maybe different from the defaultUrl
 func SetURL(listenerURL string) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
+		if listenerURL == "" {
+			logzioClient.logger.Warn("SetURL called with empty URL, keeping default.")
+			return nil
+		}
 		logzioClient.listenerURL = listenerURL
 		logzioClient.logger.Debug(fmt.Sprintf("setting listener url to %s\n", listenerURL))
 		return nil
@@ -94,14 +104,17 @@ func SetDebug(debug bool) ClientOptionFunc {
 
 // SetBodySizeThreshold set the maximum body size of the client http request
 // The param is in MB and can be between 0(mostly for testing) and 9
-func SetBodySizeThreshold(threshold int) ClientOptionFunc {
+func SetBodySizeThresholdMB(thresholdMB int) ClientOptionFunc {
 	return func(logzioClient *LogzioClient) error {
-		logzioClient.sizeThresholdInBytes = threshold * megaByte
-		if threshold < 0 || threshold > 9 {
-			logzioClient.logger.Debug("falling back to the default BodySizeThreshold")
-			logzioClient.sizeThresholdInBytes = maxRequestBodySizeInBytes
+		if thresholdMB < minSizeThresholdMB || thresholdMB > maxSizeThresholdMB {
+			logzioClient.logger.Warn(fmt.Sprintf("Invalid logzio_bulk_size_mb value (%d). Must be between %d and %d MB. Using default: %d MB.",
+				thresholdMB, minSizeThresholdMB, maxSizeThresholdMB, defaultSizeThresholdMB))
+			logzioClient.sizeThresholdInBytes = defaultSizeThresholdMB * megaByte
+		} else {
+			logzioClient.sizeThresholdInBytes = thresholdMB * megaByte
+			logzioClient.logger.Debug(fmt.Sprintf("setting BodySizeThresholdMB to %d MB (%d bytes)",
+				thresholdMB, logzioClient.sizeThresholdInBytes))
 		}
-		logzioClient.logger.Debug(fmt.Sprintf("setting BodySizeThreshold to %d\n", logzioClient.sizeThresholdInBytes))
 		return nil
 	}
 }

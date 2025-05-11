@@ -19,37 +19,48 @@ according to the [instructions from Fluent Bit](https://docs.fluentbit.io/manual
 
 #### 2.  Install and configure the Logz.io plugin
 
-For Linux:
-```shell
-wget -O /fluent-bit/plugins/out_logzio-linux.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux.so
-```
+First, find the **plugin directory** for your Fluent Bit installation (e.g., `/usr/lib/fluent-bit/plugins/`, `C:\Program Files\fluent-bit\lib\`, or a custom path). You will need to move the downloaded file into this directory. Check your Fluent Bit documentation or setup if unsure.
 
-For Linux with ARM64 Architecture:
-```shell
-wget -O /fluent-bit/plugins/out_logzio-linux.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-linux-arm64.so
-```
+The commands below will download the **latest** stable version of the plugin binary for your platform into your current working directory.
 
-For MacOS:
-```shell
-wget -O /fluent-bit/plugins/out_logzio-linux.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS.so
-```
+- *(Optional)* If you need a specific version instead of the latest, replace `latest` in the download URL with the desired version tag (e.g., `v0.6.3`). You can find tags on the [Releases page](https://github.com/logzio/fluent-bit-logzio-output/releases).
 
-For MacOS with ARM64 Architecture:
-```shell
-wget -O /fluent-bit/plugins/out_logzio-linux.so \
-    https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-macOS-arm64.so
-```
 
-For Windows:
-```shell
-wget https://github.com/logzio/fluent-bit-logzio-output/raw/master/build/out_logzio-windows.so
-```
+* **For Linux (amd64):**
+    ```shell
+    wget -O /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-linux-amd64.so
+    ```
 
-In your Fluent Bit configuration file (`fluent-bit.conf` by default),
-add Logz.io as an output.
+* **For Linux (arm64):**
+    ```shell
+    wget -O /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-linux-arm64.so
+    ```
+
+* **For macOS (amd64):**
+    ```shell
+    wget -O /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-macos-amd64.so
+    ```
+
+* **For macOS (arm64):**
+    ```shell
+    wget -O /fluent-bit/plugins/out_logzio.so \
+    https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/out_logzio-macos-arm64.so
+    ```
+
+* **For Windows (amd64):**
+    ```powershell
+    $pluginDir = "C:\fluent-bit\plugins" # Example path - CHANGE IF YOURS IS DIFFERENT
+    $fileName = "out_logzio-windows-amd64.dll"
+    $downloadUrl = "https://github.com/logzio/fluent-bit-logzio-output/releases/latest/download/{0}" -f $fileName
+    $outputFile = Join-Path $pluginDir "out_logzio.dll"
+    
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $outputFile 
+    ```
+
+Finally, in your Fluent Bit configuration file (`fluent-bit.conf` by default), add Logz.io as an output. Ensure Fluent Bit is configured to load plugins from the directory where you saved the file (this might be automatic, or require the `Plugins_File` directive or the `-e` startup flag pointing to the specific `.so`/`.dll` file).
 
 **Note**:
 Logz.io-Out Plugin for Fluent Bit
@@ -68,13 +79,33 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
+    logzio_type <<LOG_TYPE>>
+    logzio_bulk_size_mb 2
 ```
 #### 3.  Run Fluent Bit with the Logz.io plugin
 
-```shell
-fluent-bit -e /fluent-bit/plugins/out_logzio-linux.so \
--c /fluent-bit/etc/fluent-bit.conf
-```
+The commands below assume you have downloaded the Logz.io plugin to a standard path and your Fluent Bit configuration is also in a standard location. If your paths differ, you will need to adjust them.
+
+* **Expected Plugin Paths:**
+    * Linux/macOS: `/fluent-bit/plugins/out_logzio.so`
+    * Windows: `C:\fluent-bit\plugin\out_logzio.dll`
+* **Expected Config Paths:**
+    * Linux/macOS: `/fluent-bit/etc/fluent-bit.conf`
+    * Windows: `C:\fluent-bit\etc\fluent-bit.conf`
+
+**Example Run Commands:**
+
+* **For Linux/macOS:**
+    ```shell
+    fluent-bit -e /fluent-bit/plugins/out_logzio.so -c /fluent-bit/etc/fluent-bit.conf
+    ```
+
+* **For Windows (Command Prompt):**
+    ```shell
+    fluent-bit.exe -e C:\fluent-bit\plugin\out_logzio.dll -c C:\fluent-bit\etc\fluent-bit.conf
+    ```
+
+**Note:** Ensure your `fluent-bit.conf` includes the `[OUTPUT]` section for Logz.io as described earlier. The `-e` flag explicitly loads the plugin from the specified path.
 
 #### 4.  Check Logz.io for your logs
 
@@ -87,6 +118,8 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 <div id="docker-config">
 
 ## Run in a Docker container
+
+This refers to running the pre-built logzio/fluent-bit-output Docker image which already contains the plugin and its dependencies.
 
 ### Configuration
 
@@ -115,16 +148,16 @@ For a list of options, see the [configuration parameters](#config-params) below 
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
     id <<any string>>
+    logzio_type <<LOG_TYPE>>
 ```
 #### 2.  Run the Docker image
 
-Run the Docker image
-using the `fluent-bit.conf` file you made in step 1.
+Run the Docker image, mounting your configuration file into the container. Remember to replace <TAG> with the desired image tag
 
 ```shell
-docker run -it --rm \
--v /path/to/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf \
-logzio/fluent-bit-output
+# Make sure your fluent-bit.conf is in the current directory or provide full path
+docker run --rm -v $(pwd)/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf \
+logzio/fluent-bit-output:<TAG>
 ```
 
 #### 3.  Check Logz.io for your logs
@@ -144,11 +177,12 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 | logzio_token        | **Required**. Replace `<<SHIPPING-TOKEN>>` with the [token](https://app.logz.io/#/dashboard/settings/general) of the account you want to ship to.                                                                                                                                                               |
 | logzio_url          | **Default**: `https://listener.logz.io:8071`  Listener URL and port. Replace `<<LISTENER-HOST>>` with your region's listener host (for example, `listener.logz.io`). For more information on finding your account's region, see [Account region](https://docs.logz.io/user-guide/accounts/account-region.html). |
 | logzio_type         | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                  |
+| logzio_bulk_size_mb  | **Default**: `2` Max uncompressed bulk size (MB) before flushing (1-9). Lower values prevent crashes/reduce memory; higher values may increase throughput but use more resources. |
 | logzio_debug        | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                          |
-| id                  | **Default**: `logzio_output_1`  Output id. Mandatory when using multiple outputs.                                                                                                                                                                                                                               |
+| id                  | **Default**: `logzio_output_1`  Output id. Mandatory for multiple outputs. Recommended to set explicitly.                                                                                                                                                                                                                               |
 | dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                 |
 | dedot_nested        | **Default**: `false`  Enables nesting dedot processing.                                                                                                                                                                                                                                                         |
-| dedot_new_seperator | **Default**: `"_"`  Seperator character to use when applying dedot processing.                                                                                                                                                                                                                                  |
+| dedot_new_separator | **Default**: `"_"`  Separator character to use when applying dedot processing.                                                                                                                                                                                                                                  |
 | proxy_host          | **Optional**: `<PROXY_HOST>:<PROXY_PORT>`  Support HTTP proxy processing.                                                                                                                                                                                                                                       |
 | proxy_user          | **Optional**: `""`  Support HTTP proxy user authentication.                                                                                                                                                                                                                                                     |
 | proxy_pass          | **Optional**: `""`  Support HTTP proxy password authentication.                                                                                                                                                                                                                                                 |
@@ -159,7 +193,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 
 **Requirements**:
 
-* Go version >= 1.11.x
+* Go version >= 1.22.x
 
 To contribute, clone this repo
 and install dependencies
@@ -175,6 +209,9 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.6.3**:
+  - Fix potential stack overflow: Reduced default bulk size to 2MB, added `logzio_bulk_size_mb` config (1-9 MB).
+  - Automate multi-platform binary release assets
 - **0.6.2**:
   - Resolve bug with exit code handling to ensure all buffered logs are flushed before termination.
   - Upgrade golang to `1.22`.

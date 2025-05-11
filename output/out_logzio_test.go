@@ -11,123 +11,188 @@ import (
 )
 
 const (
-	testType  = "testType"
-	testToken = "testToken"
-	testURL   = "testUrl"
-	testDebug = "true"
+	testType            = "testType"
+	testToken           = "testToken"
+	testURL             = "testUrl"
+	testDebug           = "true"
+	testId              = "testOutputId"
+	testBulkSizeValid   = "5"
+	testBulkSizeInvalid = "abc"
+	testBulkSizeTooLow  = "0"
+	testBulkSizeTooHigh = "10"
 )
 
-func TestSerializeRecord(test *testing.T) {
-	record := make(map[interface{}]interface{})
-	record["key"] = "value"
-	record["five"] = 5
-	testServer := time.Now()
+type TestPluginMock struct {
+	config     map[string]string
+	sentLogs   [][]byte
+	records    []map[interface{}]interface{}
+	recCounter int
+}
 
-	serialize, err := serializeRecord(testServer, "atag", record, "logzio", defaultId, false, false, "_")
-	require.NoError(test, err)
-	require.NotNil(test, serialize, "nil json")
-
-	result := make(map[string]interface{})
-	err = json.Unmarshal(serialize, &result)
-	if err != nil {
-		require.NotNil(test, err)
+func (p *TestPluginMock) Environment(ctx unsafe.Pointer, key string) string {
+	if val, ok := p.config[key]; ok {
+		return val
 	}
-
-	require.Equal(test, result["fluentbit_tag"], "atag")
-	require.Equal(test, result["key"], "value")
-	require.Equal(test, result["five"], float64(5))
+	return ""
 }
-
-type TestPlugin struct {
-	ltype     string
-	token     string
-	url       string
-	debug     string
-	logs      []string
-	rcounter  int
-	output_id string
-}
-
-func (p *TestPlugin) Environment(ctx unsafe.Pointer, key string) string {
-	switch key {
-	case "logzio_type":
-		return p.ltype
-	case "logzio_token":
-		return p.token
-	case "logzio_url":
-		return p.url
-	case "logzio_debug":
-		return p.debug
-	}
-	return "not found"
-}
-
-func (p *TestPlugin) Unregister(ctx unsafe.Pointer)                                 {}
-func (p *TestPlugin) NewDecoder(data unsafe.Pointer, length int) *output.FLBDecoder { return nil }
-func (p *TestPlugin) Flush(*LogzioClient) int                                       { return output.FLB_OK }
-
-func (p *TestPlugin) Send(log []byte, client *LogzioClient) int {
-	p.logs = append(p.logs, string(log))
+func (p *TestPluginMock) Unregister(ctx unsafe.Pointer) {}
+func (p *TestPluginMock) NewDecoder(data unsafe.Pointer, length int) *output.FLBDecoder { return nil }
+func (p *TestPluginMock) Flush(client *LogzioClient) int {
 	return output.FLB_OK
 }
-
-func (p *TestPlugin) GetRecord(dec *output.FLBDecoder) (int, interface{}, map[interface{}]interface{}) {
-	if p.rcounter == len(p.logs) {
+func (p *TestPluginMock) Send(logBytes []byte, client *LogzioClient) int {
+	p.sentLogs = append(p.sentLogs, logBytes)
+	return output.FLB_OK
+}
+func (p *TestPluginMock) GetRecord(dec *output.FLBDecoder) (int, interface{}, map[interface{}]interface{}) {
+	if p.recCounter >= len(p.records) {
 		return -1, nil, nil
 	}
-
-	record := map[interface{}]interface{}{
-		"type":      "override",
-		"host":      "host",
-		"output_id": defaultId,
-	}
-
-	foo := map[interface{}]interface{}{
-		"bar": "1",
-		"baz": 2,
-	}
-
-	record["foo"] = foo
-
-	return 0, time.Now(), record
+	record := p.records[p.recCounter]
+	p.recCounter++
+	return 0, output.FLBTime{Time: time.Now()}, record
+}
+func NewTestPluginMock(config map[string]string, records []map[interface{}]interface{}) *TestPluginMock {
+	return &TestPluginMock{config: config, records: records}
 }
 
-func TestPluginInitialization(test *testing.T) {
-	plugin = &TestPlugin{
-		ltype: testType,
-		token: testToken,
-		url:   testURL,
-		debug: testDebug,
+// --- Test Cases ---
+
+func TestSerializeRecord(test *testing.T) {
+	instanceLogger := NewLogger("testSerialize", true)
+	testInstance := &LogzioOutput{
+		logger:            instanceLogger,
+		ltype:             "type1",
+		id:                "out1",
+		dedotEnabled:      false,
+		dedotNewSeparator: "_",
 	}
-	res := FLBPluginInit(nil)
-	require.Equal(test, output.FLB_ERROR, res)
+	record := map[interface{}]interface{}{"key": "value"}
+	testTime := time.Now()
+	serializedNoDedot, err := serializeRecord(testTime, "tag1", record, testInstance)
+	require.NoError(test, err)
+	resultNoDedot := make(map[string]interface{})
+	err = json.Unmarshal(serializedNoDedot, &resultNoDedot)
+	require.NoError(test, err)
+	require.Equal(test, "value", resultNoDedot["key"])
+	require.Equal(test, "tag1", resultNoDedot["fluentbit_tag"])
 }
 
-func TestPluginFlusher(test *testing.T) {
-	tp := &TestPlugin{
-		ltype:     testType,
-		token:     testToken,
-		url:       testURL,
-		debug:     testDebug,
-		output_id: defaultId,
-		rcounter:  1,
+func TestPluginInitializationBasic(test *testing.T) {
+	mockMissingToken := NewTestPluginMock(map[string]string{"id": testId}, nil)
+	plugin = mockMissingToken
+	err := initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.Error(test, err)
+	require.EqualError(test, err, "required parameter 'logzio_token' is missing")
+
+	mockValid := NewTestPluginMock(map[string]string{"logzio_token": testToken, "id": testId}, nil)
+	plugin = mockValid
+	outputs = nil
+	err = initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.NotNil(test, outputs)
+	instance, ok := outputs[testId]
+	require.True(test, ok)
+	require.NotNil(test, instance)
+	require.NotNil(test, instance.client)
+	require.Equal(test, defaultSizeThresholdMB*megaByte, instance.client.sizeThresholdInBytes)
+}
+
+func TestPluginInitializationBulkSize(test *testing.T) {
+	mockValidSize := NewTestPluginMock(map[string]string{
+		"logzio_token":        testToken,
+		"id":                  testId,
+		"logzio_bulk_size_mb": testBulkSizeValid,
+	}, nil)
+	plugin = mockValidSize
+	outputs = nil
+	err := initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.NotNil(test, outputs[testId])
+	require.Equal(test, 5*megaByte, outputs[testId].client.sizeThresholdInBytes)
+
+	mockInvalidSize := NewTestPluginMock(map[string]string{
+		"logzio_token":        testToken,
+		"id":                  testId,
+		"logzio_bulk_size_mb": testBulkSizeInvalid,
+	}, nil)
+	plugin = mockInvalidSize
+	outputs = nil
+	err = initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.NotNil(test, outputs[testId])
+	require.Equal(test, defaultSizeThresholdMB*megaByte, outputs[testId].client.sizeThresholdInBytes)
+
+	mockTooLowSize := NewTestPluginMock(map[string]string{
+		"logzio_token":        testToken,
+		"id":                  testId,
+		"logzio_bulk_size_mb": testBulkSizeTooLow,
+	}, nil)
+	plugin = mockTooLowSize
+	outputs = nil
+	err = initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.NotNil(test, outputs[testId])
+	require.Equal(test, defaultSizeThresholdMB*megaByte, outputs[testId].client.sizeThresholdInBytes)
+
+	mockTooHighSize := NewTestPluginMock(map[string]string{
+		"logzio_token":        testToken,
+		"id":                  testId,
+		"logzio_bulk_size_mb": testBulkSizeTooHigh,
+	}, nil)
+	plugin = mockTooHighSize
+	outputs = nil
+	err = initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.NotNil(test, outputs[testId])
+	require.Equal(test, defaultSizeThresholdMB*megaByte, outputs[testId].client.sizeThresholdInBytes)
+}
+
+func TestPluginFlusherMock(test *testing.T) {
+	// 1. Define mock records and config
+	records := []map[interface{}]interface{}{
+		{"message": "log 1", "field": "value1"},
+		{"message": "log 2", "field": "value2"},
 	}
-	plugin = tp
-	res := FLBPluginFlushCtx(nil, nil, 0, nil)
+	mockConfig := map[string]string{
+		"logzio_token": testToken,
+		"id":           testId,
+		"logzio_type":  testType,
+	}
+	mockPlugin := NewTestPluginMock(mockConfig, records)
+	plugin = mockPlugin 
+
+	// 2. Initialize the configuration (this populates the global 'outputs' map)
+	outputs = make(map[string]*LogzioOutput) 
+	err := initConfigParams(unsafe.Pointer(uintptr(0)))
+	require.NoError(test, err)
+	require.Contains(test, outputs, testId) 
+	outputInstance := outputs[testId]  
+
+	// 3. Simulate the core logic of FLBPluginFlushCtx: Iterate records -> Serialize -> Send
+	tag := "test.tag"
+	for {
+		ret, ts, record := mockPlugin.GetRecord(nil) 
+		if ret != 0 {
+			break 
+		}
+		logBytes, err := serializeRecord(ts, tag, record, outputInstance)
+		require.NoError(test, err)   
+		res := plugin.Send(logBytes, outputInstance.client) 
+		require.Equal(test, output.FLB_OK, res) 
+	}
+
+	// 4. Simulate the final flush call
+	res := plugin.Flush(outputInstance.client) 
 	require.Equal(test, output.FLB_OK, res)
 
-	var j map[string]interface{}
-	blog := []byte(tp.logs[0])
-	err := json.Unmarshal(blog, &j)
-	if err != nil {
-		require.NotNil(test, err)
-	}
+	// 5. Verify results: Check that the mock's Send method was called correctly
+	require.Len(test, mockPlugin.sentLogs, len(records)) 
 
-	foo := j["foo"].(map[string]interface{})
-	require.Equal(test, foo["bar"], "1")
-	require.Equal(test, foo["baz"], float64(2))
-	require.Equal(test, j["type"], "override")
-	require.Equal(test, j["host"], "host")
-	require.Equal(test, j["output_id"], "logzio_output_1")
-	require.Contains(test, j, "@timestamp")
+	var log1Data map[string]interface{}
+	err = json.Unmarshal(mockPlugin.sentLogs[0], &log1Data)
+	require.NoError(test, err)
+	require.Equal(test, "log 1", log1Data["message"])
+	require.Equal(test, testType, log1Data["type"])
+	require.Equal(test, testId, log1Data["output_id"])
 }

@@ -6,6 +6,7 @@ package main
 import (
 	"C"
 	"fmt"
+	"log"
 	"github.com/fluent/fluent-bit-go/output"
 	jsoniter "github.com/json-iterator/go"
 	"os"
@@ -24,25 +25,20 @@ const (
 )
 
 var (
-	plugin Plugin = &bitPlugin{}
-	logger        = NewLogger(outputName, true)
+	outputs map[string]*LogzioOutput
+	plugin  Plugin = &bitPlugin{}
 )
 
 type LogzioOutput struct {
-	plugin            Plugin
 	logger            *Logger
 	client            *LogzioClient
 	ltype             string
 	id                string
 	dedotEnabled      bool
 	dedotNested       bool
-	dedotNewSeperator string
+	dedotNewSeparator string
 	headers           map[string]string
 }
-
-var (
-	outputs map[string]LogzioOutput
-)
 
 // Plugin interface
 type Plugin interface {
@@ -101,7 +97,7 @@ func FLBPluginRegister(ctx unsafe.Pointer) int {
 func FLBPluginInit(ctx unsafe.Pointer) int {
 	if ctx != nil {
 		if err := initConfigParams(ctx); err != nil {
-			logger.Debug(fmt.Sprintf("failed to initialize output configuration: %v", err))
+			log.Printf("[%s] failed to initialize output configuration: %v", outputName, err)
 			plugin.Unregister(ctx)
 			return output.FLB_ERROR
 		}
@@ -127,37 +123,63 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 //
 //export FLBPluginFlushCtx
 func FLBPluginFlushCtx(ctx, data unsafe.Pointer, length C.int, tag *C.char) int {
-	var ret int
-	var ts interface{}
-	var record map[interface{}]interface{}
 	var id string
-	if ctx != nil {
-		id = output.FLBPluginGetContext(ctx).(string)
+	var outputInstance *LogzioOutput
+	var ok bool
+
+	// Get ID from context
+	ctxID := output.FLBPluginGetContext(ctx)
+	if ctxID == nil {
+		log.Printf("[%s] Error: Flush context is nil.", outputName)
+		return output.FLB_ERROR
+	}
+	id, ok = ctxID.(string)
+	if !ok || id == "" {
+		log.Printf("[%s] Error: Invalid context ID (%v).", outputName, ctxID)
+		return output.FLB_ERROR
 	}
 
-	if id == "" {
-		id = defaultId
+	// Retrieve instance config
+	outputInstance, ok = outputs[id]
+	if !ok {
+		log.Printf("[%s] Error: Config missing for output ID '%s'.", outputName, id)
+		return output.FLB_ERROR
 	}
+	instanceLogger := outputInstance.logger
 
-	logger.Debug(fmt.Sprintf("Flushing for id: %s", id))
 	dec := plugin.NewDecoder(data, int(length))
 
-	// Iterate Records
+	lastErrCode := output.FLB_OK
 	for {
-		// Extract Record
-		ret, ts, record = plugin.GetRecord(dec)
+		ret, ts, record := plugin.GetRecord(dec)
 		if ret != 0 {
 			break
 		}
 
-		log, err := serializeRecord(ts, C.GoString(tag), record, outputs[id].ltype, id, outputs[id].dedotEnabled, outputs[id].dedotNested, outputs[id].dedotNewSeperator)
+		// Pass instance to serializeRecord
+		logBytes, err := serializeRecord(ts, C.GoString(tag), record, outputInstance)
 		if err != nil {
+			instanceLogger.Log(fmt.Sprintf("Error serializing record: %v. Skipping.", err))
 			continue
 		}
-		plugin.Send(log, outputs[id].client)
+
+		res := plugin.Send(logBytes, outputInstance.client)
+		if res != output.FLB_OK {
+			instanceLogger.Log(fmt.Sprintf("Send returned error code %d.", res))
+			lastErrCode = res
+		}
 	}
 
-	return plugin.Flush(outputs[id].client)
+	// Final Flush
+	flushResult := plugin.Flush(outputInstance.client)
+	if flushResult != output.FLB_OK {
+		instanceLogger.Log(fmt.Sprintf("Final Flush returned error code %d.", flushResult))
+		if lastErrCode == output.FLB_OK || flushResult == output.FLB_ERROR {
+			lastErrCode = flushResult
+		}
+	}
+
+	return lastErrCode
 }
 
 // FLBPluginExit When Fluent Bit will stop using the instance of the plugin,
@@ -172,157 +194,172 @@ func FLBPluginExit() int {
 }
 
 func initConfigParams(ctx unsafe.Pointer) error {
-	debug, err := strconv.ParseBool(output.FLBPluginConfigKey(ctx, "logzio_debug"))
-	if err != nil {
-		debug = false
+	outputId := plugin.Environment(ctx, "id")
+	if outputId == "" {
+		outputId = "logzio_output_1"
 	}
 
-	outputId := output.FLBPluginConfigKey(ctx, "id")
+	// Basic Config & Logger setup
+	debugStr := plugin.Environment(ctx, "logzio_debug")
+	debug, _ := strconv.ParseBool(debugStr) 
+	instanceLogger := NewLogger(fmt.Sprintf("%s_%s", outputName, outputId), debug)
 
 	if outputs == nil {
-		outputs = make(map[string]LogzioOutput)
+		outputs = make(map[string]*LogzioOutput)
+	}
+	// Check for duplicate ID warning
+	if _, exists := outputs[outputId]; exists {
+		instanceLogger.Warn(fmt.Sprintf("Output instance with id '%s' already configured. Overwriting.", outputId))
 	}
 
-	if outputId == "" {
-		logger.Debug(fmt.Sprintf("using default id: %s", defaultId))
-		outputId = defaultId
-	}
-
-	if _, ok := outputs[outputId]; ok {
-		logger.Log(fmt.Sprintf("outpout_id %s already exists, overriding", outputId))
-	}
-
-	logger = NewLogger(outputName+"_"+outputId, debug)
-	ltype := output.FLBPluginConfigKey(ctx, "logzio_type")
+	// Read other parameters
+	ltype := plugin.Environment(ctx, "logzio_type")
 	if ltype == "" {
-		logger.Debug(fmt.Sprintf("using default log type: %s", defaultLogType))
+		instanceLogger.Debug(fmt.Sprintf("logzio_type not set, using default: %s", defaultLogType))
 		ltype = defaultLogType
 	}
-
-	listenerURL := output.FLBPluginConfigKey(ctx, "logzio_url")
+	listenerURL := plugin.Environment(ctx, "logzio_url")
 	if listenerURL == "" {
-		logger.Debug(fmt.Sprintf("using default listener url: %s", defaultURL))
+		instanceLogger.Debug(fmt.Sprintf("logzio_url not set, using default: %s", defaultURL)) 
 		listenerURL = defaultURL
 	}
-
-	token := output.FLBPluginConfigKey(ctx, "logzio_token")
+	token := plugin.Environment(ctx, "logzio_token")
 	if token == "" {
-		return fmt.Errorf("token is empty")
+		return fmt.Errorf("required parameter 'logzio_token' is missing")
 	}
 
-	dedotEnabled, err := strconv.ParseBool(output.FLBPluginConfigKey(ctx, "dedot_enabled"))
+	// Dedot Config
+	dedotEnabledStr := plugin.Environment(ctx, "dedot_enabled")
+	dedotEnabled, err := strconv.ParseBool(dedotEnabledStr) 
 	dedotNested := false
-	dedotNewSeperator := ""
-	if err == nil {
-		dedotNested, err = strconv.ParseBool(output.FLBPluginConfigKey(ctx, "dedot_nested"))
+	dedotNewSeparator := "_" 
+	if err == nil && dedotEnabled {
+		dedotNestedStr := plugin.Environment(ctx, "dedot_nested")
+		dedotNested, err = strconv.ParseBool(dedotNestedStr)
 		if err != nil {
-			logger.Debug(fmt.Sprintf("Failed parsing dedot nested value, set to false"))
+			instanceLogger.Debug(fmt.Sprintf("Failed parsing dedot nested value, set to false"))
+			dedotNested = false 
 		}
-
-		dedotNewSeperator = output.FLBPluginConfigKey(ctx, "dedot_new_seperator")
-		if dedotNewSeperator == "" || dedotNewSeperator == "." {
-			logger.Debug(fmt.Sprintf("Failed parsing dedot new seperator value, set to _"))
-			dedotNewSeperator = "_"
+		dedotNewSeparator = plugin.Environment(ctx, "dedot_new_separator")
+		if dedotNewSeparator == "" || dedotNewSeparator == "." {
+			instanceLogger.Debug(fmt.Sprintf("Invalid or empty dedot new separator value, set to _"))
+			dedotNewSeparator = "_"
 		}
 	} else {
-		logger.Debug(fmt.Sprintf("Failed parsing dedotEnabled value, set to false"))
+		instanceLogger.Debug(fmt.Sprintf("dedot_enabled is false or failed to parse, disabling dedot features"))
+		dedotEnabled = false // Ensure false
 	}
-	logger.Debug(fmt.Sprintf("dedot seperator: %s", dedotNewSeperator))
+	instanceLogger.Debug(fmt.Sprintf("Dedot enabled: %t, Nested: %t, Separator: '%s'", dedotEnabled, dedotNested, dedotNewSeparator))
 
-	proxyHost := output.FLBPluginConfigKey(ctx, "proxy_host") // proxyHost:proxyPort
-	proxyUser := output.FLBPluginConfigKey(ctx, "proxy_user") // admin
-	proxyPass := output.FLBPluginConfigKey(ctx, "proxy_pass") // password1234
+	// Proxy Config
+	proxyHost := plugin.Environment(ctx, "proxy_host")
+	proxyUser := plugin.Environment(ctx, "proxy_user")
+	proxyPass := plugin.Environment(ctx, "proxy_pass")
 
+	// Headers Config
 	headers := make(map[string]string)
-	headerConfig := output.FLBPluginConfigKey(ctx, "headers")
+	headerConfig := plugin.Environment(ctx, "headers")
 	if headerConfig != "" {
 		for _, header := range strings.Split(headerConfig, ",") {
-			parts := strings.SplitN(header, ":", 2)
+			parts := strings.SplitN(strings.TrimSpace(header), ":", 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				if key == "" {
-					logger.Warn(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
+					instanceLogger.Warn(fmt.Sprintf("Warning: header '%s' has no key. Skipping.", header))
 					continue
 				}
-				if _, exists := headers[key]; exists {
-					logger.Warn(fmt.Sprintf("Warning: duplicate header key '%s'. Overwriting existing value.", key))
-				}
 				headers[key] = value
-			} else {
-				logger.Warn(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
+			} else if strings.TrimSpace(header) != "" {
+				instanceLogger.Warn(fmt.Sprintf("Warning: malformed header '%s'. Expected format 'Key:Value'", header))
 			}
 		}
 	}
 
-	client, err := NewClient(token,
-		SetURL(listenerURL),
-		SetDebug(debug),
-		SetProxy(proxyHost, proxyUser, proxyPass),
-		SetHeaders(headers),
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to create new client: %+v", err)
+	// Bulk Size Config
+	bulkSizeMBStr := plugin.Environment(ctx, "logzio_bulk_size_mb")
+	var bulkSizeOption ClientOptionFunc
+	if bulkSizeMBStr != "" {
+		bulkSizeMB, err := strconv.Atoi(bulkSizeMBStr)
+		if err != nil {
+			instanceLogger.Warn(fmt.Sprintf("Failed to parse logzio_bulk_size_mb ('%s'): %v. Using client default.", bulkSizeMBStr, err))
+		} else {
+			bulkSizeOption = SetBodySizeThresholdMB(bulkSizeMB)
+		}
+	} else {
+	    instanceLogger.Debug("logzio_bulk_size_mb not set. Using client default.")
 	}
 
-	outputs[outputId] = LogzioOutput{
-		logger:            logger,
+
+	// Create Client
+	clientOptions := []ClientOptionFunc{
+		SetURL(listenerURL),
+		SetDebug(debug), 
+		SetProxy(proxyHost, proxyUser, proxyPass),
+		SetHeaders(headers),
+	}
+	if bulkSizeOption != nil {
+		clientOptions = append(clientOptions, bulkSizeOption)
+	}
+
+	client, err := NewClient(token, clientOptions...)
+	if err != nil {
+		return fmt.Errorf("failed to create LogzioClient: %w", err)
+	}
+	client.logger = instanceLogger
+
+	outputs[outputId] = &LogzioOutput{
+		logger:            instanceLogger,
 		client:            client,
 		ltype:             ltype,
 		id:                outputId,
 		dedotEnabled:      dedotEnabled,
 		dedotNested:       dedotNested,
-		dedotNewSeperator: dedotNewSeperator,
+		dedotNewSeparator: dedotNewSeparator,
 		headers:           headers,
 	}
 
+	instanceLogger.Debug("Initialization successful.")
 	return nil
 }
 
-func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, ltype string, outputId string, dedotEnabled bool, dedotNested bool, newSeperator string) ([]byte, error) {
-	body := parseJSON(record, dedotEnabled, dedotNested, newSeperator)
-	var err error
-	if _, ok := body["type"]; !ok {
-		if ltype != "" {
-			body["type"] = ltype
-		}
-	}
+func serializeRecord(ts interface{}, tag string, record map[interface{}]interface{}, instance *LogzioOutput) ([]byte, error) {
+	body := parseJSON(record, instance.dedotEnabled, instance.dedotNested, instance.dedotNewSeparator)
 
-	if _, ok := body["output_id"]; !ok {
-		if ltype != "" {
-			body["output_id"] = outputId
-		}
+	body["@timestamp"] = formatTimestamp(ts) 
+	body["fluentbit_tag"] = tag
+
+	if _, ok := body["type"]; !ok {
+		body["type"] = instance.ltype 
 	}
+	body["output_id"] = instance.id
 
 	if _, ok := body["host"]; !ok {
-		// Get hostname
 		hostname, err := os.Hostname()
 		if err != nil {
-			hostname = "localhost"
+			instance.logger.Warn(fmt.Sprintf("Could not get hostname: %v. Using 'unknown'.", err))
+			hostname = "unknown_host"
 		}
 		body["host"] = hostname
 	}
 
-	body["@timestamp"] = formatTimestamp(ts)
-	body["fluentbit_tag"] = tag
-
 	serialized, err := jsoniter.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert %+v to JSON: %v", record, err)
+		instance.logger.Log(fmt.Sprintf("Failed to marshal record map to JSON: %v", err))
+		return nil, fmt.Errorf("failed marshal record: %w", err) // Wrap error
 	}
 
 	return serialized, nil
 }
 
-func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNested bool, dedotNewSeperator string) map[string]interface{} {
+func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNested bool, dedotNewSeparator string) map[string]interface{} {
 	jsonRecord := make(map[string]interface{})
 
 	for k, v := range record {
 		stringKey := k.(string)
 		if dedotEnabled {
 			regex := regexp.MustCompile("\\.")
-			stringKey = regex.ReplaceAllString(stringKey, dedotNewSeperator)
+			stringKey = regex.ReplaceAllString(stringKey, dedotNewSeparator)
 		}
 
 		switch t := v.(type) {
@@ -333,7 +370,7 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 			if !dedotNested {
 				dedotEnabled = false
 			}
-			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator)
+			jsonRecord[stringKey] = parseJSON(t, dedotEnabled, dedotNested, dedotNewSeparator)
 		case []interface{}:
 			var array []interface{}
 			for _, e := range v.([]interface{}) {
@@ -344,7 +381,7 @@ func parseJSON(record map[interface{}]interface{}, dedotEnabled bool, dedotNeste
 					if !dedotNested {
 						dedotEnabled = false
 					}
-					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeperator))
+					array = append(array, parseJSON(t, dedotEnabled, dedotNested, dedotNewSeparator))
 				default:
 					array = append(array, e)
 				}
