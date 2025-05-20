@@ -78,8 +78,8 @@ For a list of options, see the [configuration parameters](#config-params) below 
     Workers 1
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
-    id <<any string>>
-    logzio_type <<LOG_TYPE>>
+    id <<YOUR-OUTPUT-ID>>
+    logzio_type <<LOG-TYPE>>
     logzio_bulk_size_mb 2
 ```
 #### 3.  Run Fluent Bit with the Logz.io plugin
@@ -147,8 +147,8 @@ For a list of options, see the [configuration parameters](#config-params) below 
     Match *
     logzio_token <<SHIPPING-TOKEN>>
     logzio_url   https://<<LISTENER-HOST>>:8071
-    id <<any string>>
-    logzio_type <<LOG_TYPE>>
+    id <<YOUR-OUTPUT-ID>>
+    logzio_type <<LOG-TYPE>>
 ```
 #### 2.  Run the Docker image
 
@@ -179,7 +179,7 @@ If you still don't see your logs, see [log shipping troubleshooting](https://doc
 | logzio_type         | **Default**: `logzio-fluent-bit`  The [log type](https://docs.logz.io/user-guide/log-shipping/built-in-log-types.html), shipped as `type` field. Used by Logz.io for consistent parsing. Can't contain spaces.                                                                                                  |
 | logzio_bulk_size_mb  | **Default**: `2` Max uncompressed bulk size (MB) before flushing (1-9). Lower values prevent crashes/reduce memory; higher values may increase throughput but use more resources. |
 | logzio_debug        | **Default**: `false`  Set to `true` to print debug messages to stdout.                                                                                                                                                                                                                                          |
-| id                  | **Default**: `logzio_output_1`  Output id. Mandatory for multiple outputs. Recommended to set explicitly.                                                                                                                                                                                                                               |
+| id                  | **Required**. Replace `<<YOUR-OUTPUT-ID>>` with your output ID. e.g: `logzio_output_1` . Recommended to set explicitly.                                                                                                                                                                                                                               |
 | dedot_enabled       | **Default**: `false`  Enabled dedot processing.                                                                                                                                                                                                                                                                 |
 | dedot_nested        | **Default**: `false`  Enables nesting dedot processing.                                                                                                                                                                                                                                                         |
 | dedot_new_separator | **Default**: `"_"`  Separator character to use when applying dedot processing.                                                                                                                                                                                                                                  |
