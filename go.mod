@@ -1,11 +1,11 @@
 module github.com/logzio/fluent-bit-logzio-output
 
-go 1.22
+go 1.25
 
 require (
 	github.com/fluent/fluent-bit-go v0.0.0-20230731091245-a7a013e2473c
 	github.com/json-iterator/go v1.1.12
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
