@@ -209,6 +209,9 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.7.0**:
+  - Upgrade FluentBit from v3.1.4 to v4.1.1
+  - Upgrade GoLang to v1.25.0
 - **0.6.3**:
   - Fix potential stack overflow: Reduced default bulk size to 2MB, added `logzio_bulk_size_mb` config (1-9 MB).
   - Automate multi-platform binary release assets
