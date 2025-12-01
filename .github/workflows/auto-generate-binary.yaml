@@ -43,7 +43,7 @@ jobs:
           go build -trimpath -buildmode=c-shared -o build/out_logzio-linux-arm64.so ./output
 
       - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: linux-binaries 
           path: build/*.so
@@ -79,7 +79,7 @@ jobs:
           go build -trimpath -buildmode=c-shared -o build/out_logzio-macos-arm64.so ./output
 
       - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: macos-binaries
           path: build/*.so
@@ -116,7 +116,7 @@ jobs:
         shell: cmd
 
       - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-binary
           path: build/*.dll
