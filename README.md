@@ -209,6 +209,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.8.1**:
+  - Upgrade GoLang to v1.26 (CVE-2026-111943 / GO-2026-6809: distrust compromised eMudhra/emSign intermediates)
 - **0.8.0**:
   - Upgrade FluentBit from v4.1.1 to v5.0.3
 - **0.7.0**:
