@@ -209,6 +209,8 @@ Always confirm your logs are arriving at your Logz.io account.
 
 
 ## Change log
+- **0.9.0**:
+  - Upgrade FluentBit from v5.0.3 to v5.2.0 (drops the `emSign ECC Root CA - G3` and `AAA Certificate Services` roots from the CA bundle, CVE-2026-111943)
 - **0.8.1**:
   - Upgrade GoLang to v1.26 (CVE-2026-111943 / GO-2026-6809: distrust compromised eMudhra/emSign intermediates)
 - **0.8.0**:
