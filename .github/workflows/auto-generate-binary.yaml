@@ -137,11 +137,11 @@ jobs:
         run: find artifacts -type f
 
       - name: Upload Binaries to Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: |
-            artifacts/linux-binaries/*.so
-            artifacts/macos-binaries/*.so
-            artifacts/windows-binary/*.dll
-          fail_on_unmatched_files: true 
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            artifacts/linux-binaries/*.so \
+            artifacts/macos-binaries/*.so \
+            artifacts/windows-binary/*.dll \
+            --clobber 
